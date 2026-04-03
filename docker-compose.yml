@@ -19,20 +19,13 @@ services:
   app:
     build: .
     restart: unless-stopped
-    expose:
-      - "3000"
+    ports:
+      - "3001:3000"
     environment:
       DATABASE_URL: postgresql://soccerville:soccerville@db:5432/soccerville
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - default
-      - dokploy-network
-
-networks:
-  dokploy-network:
-    external: true
 
 volumes:
   postgres_data:
