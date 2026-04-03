@@ -2,6 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserCog, Shield, MapPin, Mail, Phone } from "lucide-react";
+import { CreateUserButton, EditUserButton } from "@/components/admin/user-form";
+import { DeleteButton } from "@/components/admin/delete-button";
+import { deleteUser } from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +15,13 @@ const roleLabels: Record<string, { label: string; class: string }> = {
 };
 
 export default async function UsuariosAdmin() {
-  const users = await prisma.user.findMany({
-    include: { venue: true },
-    orderBy: [{ role: "asc" }, { createdAt: "desc" }],
-  });
+  const [users, venues] = await Promise.all([
+    prisma.user.findMany({
+      include: { venue: true },
+      orderBy: [{ role: "asc" }, { createdAt: "desc" }],
+    }),
+    prisma.venue.findMany({ select: { id: true, name: true } }),
+  ]);
 
   const admins = users.filter((u) => u.role === "ADMIN");
   const operators = users.filter((u) => u.role === "OPERATOR");
@@ -29,10 +35,11 @@ export default async function UsuariosAdmin() {
             Usuarios
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {admins.length} admin · {operators.length} operadores ·{" "}
+            {admins.length} admin &middot; {operators.length} operadores &middot;{" "}
             {captains.length} capitanes
           </p>
         </div>
+        <CreateUserButton venues={venues} />
       </div>
 
       {users.length === 0 ? (
@@ -46,6 +53,14 @@ export default async function UsuariosAdmin() {
         <div className="space-y-3">
           {users.map((user) => {
             const role = roleLabels[user.role] ?? roleLabels.CAPTAIN;
+            const userData = {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              phone: user.phone,
+              role: user.role,
+              venueId: user.venueId,
+            };
             return (
               <Card key={user.id} className="border-0 shadow-sm">
                 <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -80,13 +95,20 @@ export default async function UsuariosAdmin() {
                       </div>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(user.createdAt).toLocaleDateString("es-MX", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </p>
+                  <div className="flex items-center gap-1">
+                    <p className="text-xs text-muted-foreground whitespace-nowrap mr-2">
+                      {new Date(user.createdAt).toLocaleDateString("es-MX", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                    <EditUserButton venues={venues} user={userData} />
+                    <DeleteButton
+                      label="usuario"
+                      onDelete={deleteUser.bind(null, user.id)}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             );

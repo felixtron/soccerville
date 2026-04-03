@@ -2,6 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Store, Megaphone, PartyPopper, DollarSign, MapPin, User } from "lucide-react";
+import { CreateSpaceButton, EditSpaceButton } from "@/components/admin/space-form";
+import { DeleteButton } from "@/components/admin/delete-button";
+import { deleteSpace } from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +21,13 @@ const typeLabels: Record<string, string> = {
 };
 
 export default async function EspaciosAdmin() {
-  const spaces = await prisma.commercialSpace.findMany({
-    include: { venue: true },
-    orderBy: [{ status: "asc" }, { type: "asc" }],
-  });
+  const [spaces, venues] = await Promise.all([
+    prisma.commercialSpace.findMany({
+      include: { venue: true },
+      orderBy: [{ status: "asc" }, { type: "asc" }],
+    }),
+    prisma.venue.findMany({ select: { id: true, name: true } }),
+  ]);
 
   const available = spaces.filter((s) => s.status === "AVAILABLE").length;
   const rented = spaces.filter((s) => s.status === "RENTED").length;
@@ -34,14 +40,27 @@ export default async function EspaciosAdmin() {
             Espacios Comerciales
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {available} disponibles · {rented} rentados
+            {available} disponibles &middot; {rented} rentados
           </p>
         </div>
+        <CreateSpaceButton venues={venues} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {spaces.map((space) => {
           const Icon = typeIcons[space.type] ?? Store;
+          const spaceData = {
+            id: space.id,
+            venueId: space.venueId,
+            type: space.type,
+            label: space.label,
+            price: space.price,
+            contractMonths: space.contractMonths,
+            status: space.status,
+            tenantName: space.tenantName,
+            tenantPhone: space.tenantPhone,
+            tenantEmail: space.tenantEmail,
+          };
           return (
             <Card key={space.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
@@ -60,15 +79,22 @@ export default async function EspaciosAdmin() {
                       </span>
                     </div>
                   </div>
-                  <Badge
-                    className={
-                      space.status === "AVAILABLE"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-blue-100 text-blue-700"
-                    }
-                  >
-                    {space.status === "AVAILABLE" ? "Disponible" : "Rentado"}
-                  </Badge>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Badge
+                      className={
+                        space.status === "AVAILABLE"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-blue-100 text-blue-700"
+                      }
+                    >
+                      {space.status === "AVAILABLE" ? "Disponible" : "Rentado"}
+                    </Badge>
+                    <EditSpaceButton venues={venues} space={spaceData} />
+                    <DeleteButton
+                      label="espacio"
+                      onDelete={deleteSpace.bind(null, space.id)}
+                    />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>

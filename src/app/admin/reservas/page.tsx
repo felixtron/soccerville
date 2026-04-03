@@ -1,7 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Clock, MapPin, Phone, User } from "lucide-react";
+import { CalendarDays, Clock, MapPin, Phone } from "lucide-react";
+import { CreateBookingButton, EditBookingButton } from "@/components/admin/booking-form";
+import { DeleteButton } from "@/components/admin/delete-button";
+import { deleteBooking } from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +15,13 @@ const statusMap: Record<string, { label: string; class: string }> = {
 };
 
 export default async function ReservasAdmin() {
-  const bookings = await prisma.booking.findMany({
-    include: { venue: true },
-    orderBy: { date: "desc" },
-  });
+  const [bookings, venues] = await Promise.all([
+    prisma.booking.findMany({
+      include: { venue: true },
+      orderBy: { date: "desc" },
+    }),
+    prisma.venue.findMany({ select: { id: true, name: true } }),
+  ]);
 
   return (
     <>
@@ -28,6 +34,7 @@ export default async function ReservasAdmin() {
             {bookings.length} reservas registradas
           </p>
         </div>
+        <CreateBookingButton venues={venues} />
       </div>
 
       {bookings.length === 0 ? (
@@ -44,6 +51,18 @@ export default async function ReservasAdmin() {
         <div className="space-y-3">
           {bookings.map((b) => {
             const status = statusMap[b.status] ?? statusMap.PENDING;
+            const bookingData = {
+              id: b.id,
+              venueId: b.venueId,
+              date: b.date.toISOString().split("T")[0],
+              startTime: b.startTime,
+              endTime: b.endTime,
+              customerName: b.customerName,
+              customerPhone: b.customerPhone,
+              customerEmail: b.customerEmail,
+              status: b.status,
+              notes: b.notes,
+            };
             return (
               <Card key={b.id} className="border-0 shadow-sm">
                 <CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -74,13 +93,20 @@ export default async function ReservasAdmin() {
                       </div>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground md:text-right whitespace-nowrap">
-                    {new Date(b.date).toLocaleDateString("es-MX", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-muted-foreground whitespace-nowrap">
+                      {new Date(b.date).toLocaleDateString("es-MX", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </p>
+                    <EditBookingButton venues={venues} booking={bookingData} />
+                    <DeleteButton
+                      label="reserva"
+                      onDelete={deleteBooking.bind(null, b.id)}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             );
