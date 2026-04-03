@@ -1,11 +1,13 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LinkButton } from "@/components/ui/link-button";
-import { Clock, DollarSign, Car, ShowerHead, Lightbulb, MapPin, Zap } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { Car, ShowerHead, Lightbulb, Zap } from "lucide-react";
+import { BookingWizard } from "@/components/public/booking-wizard";
 import type { Metadata } from "next";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Reservar Cancha",
-  description: "Renta de cancha de futbol 7 por $550/hora. Estacionamiento, banos, vestidores y alumbrado incluido.",
+  description: "Renta de cancha de futbol 7 por $550/hora. Reserva en linea y paga con tarjeta o en efectivo.",
 };
 
 const included = [
@@ -15,12 +17,20 @@ const included = [
   { icon: Zap, label: "Pasto sintetico pro" },
 ];
 
-const venues = [
-  { name: "Metepec", price: 550, whatsapp: "5215551234567", address: "Metepec, Estado de Mexico" },
-  { name: "Calimaya", price: 550, whatsapp: "5215551234567", address: "Calimaya, Estado de Mexico" },
-];
+export default async function ReservarPage() {
+  const venues = await prisma.venue.findMany({
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      fieldRentalPrice: true,
+      whatsapp: true,
+      stripeOnboarded: true,
+      operatingHours: true,
+    },
+    orderBy: { name: "asc" },
+  });
 
-export default function ReservarPage() {
   return (
     <>
       {/* Hero */}
@@ -33,7 +43,7 @@ export default function ReservarPage() {
             tu cancha
           </h1>
           <p className="mt-4 text-white/50 max-w-md">
-            Cancha de futbol 7 con pasto sintetico de calidad profesional. Reserva tu horario y llega a jugar.
+            Cancha de futbol 7 con pasto sintetico profesional. Selecciona tu horario y paga en linea.
           </p>
         </div>
       </section>
@@ -43,7 +53,7 @@ export default function ReservarPage() {
         <div className="bg-gradient-to-br from-primary to-emerald-700 text-white rounded-3xl p-8 md:p-12 text-center mb-12">
           <p className="text-sm uppercase tracking-[0.3em] text-white/60 mb-3">Precio por hora</p>
           <p className="font-display text-7xl md:text-9xl leading-none tracking-tight">
-            $550
+            ${venues[0]?.fieldRentalPrice ?? 550}
           </p>
           <p className="mt-3 text-white/70">Todo incluido, sin costos extras</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10 max-w-2xl mx-auto">
@@ -58,34 +68,12 @@ export default function ReservarPage() {
           </div>
         </div>
 
-        {/* Venues */}
-        <div className="grid gap-6 md:grid-cols-2 mb-16">
-          {venues.map((venue) => (
-            <Card key={venue.name} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-primary" />
-                  <CardTitle className="font-display text-2xl uppercase tracking-tight">
-                    {venue.name}
-                  </CardTitle>
-                </div>
-                <p className="text-sm text-muted-foreground">{venue.address}</p>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 mb-5">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-semibold">${venue.price.toLocaleString()}/hora</span>
-                </div>
-                <LinkButton
-                  href={`https://wa.me/${venue.whatsapp}?text=${encodeURIComponent(`Hola! Quiero reservar cancha en la sede ${venue.name}`)}`}
-                  target="_blank"
-                  className="w-full rounded-full !bg-emerald-600 !text-white hover:!bg-emerald-500 border-0"
-                >
-                  Reservar por WhatsApp
-                </LinkButton>
-              </CardContent>
-            </Card>
-          ))}
+        {/* Booking Wizard */}
+        <div className="mb-16">
+          <h2 className="font-display text-3xl md:text-4xl uppercase tracking-tight text-center mb-8">
+            Reserva en linea
+          </h2>
+          <BookingWizard venues={venues} />
         </div>
 
         {/* How it works */}
@@ -95,15 +83,15 @@ export default function ReservarPage() {
           </h2>
           <div className="space-y-5">
             {[
-              "Contactanos por WhatsApp con tu sede, fecha y horario preferido",
-              "Confirmamos disponibilidad y apartas con tu pago",
-              "Llega a la cancha y disfruta tu partido",
-            ].map((step, i) => (
+              "Selecciona la sede, fecha y horario disponible",
+              "Ingresa tus datos y confirma la reserva",
+              "Paga con tarjeta en linea o confirma por WhatsApp",
+            ].map((s, i) => (
               <div key={i} className="flex items-start gap-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0a0a0a] text-white font-display text-xl">
                   {i + 1}
                 </div>
-                <p className="pt-2 text-muted-foreground">{step}</p>
+                <p className="pt-2 text-muted-foreground">{s}</p>
               </div>
             ))}
           </div>
