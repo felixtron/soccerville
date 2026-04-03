@@ -116,7 +116,7 @@ export function AdminSidebar() {
         {/* Footer */}
         <div className="p-2 border-t border-white/5">
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => signOut({ callbackUrl: "/" })}
             className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-colors w-full ${
               collapsed ? "justify-center" : ""
             }`}

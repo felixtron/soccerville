@@ -253,6 +253,7 @@ export default async function MiEquipoPage() {
             </span>
           </Link>
           <form action="/api/auth/signout" method="POST">
+              <input type="hidden" name="callbackUrl" value="/" />
             <button className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors">
               <LogOut className="h-3.5 w-3.5" />
               Salir
