@@ -64,8 +64,8 @@ export default async function TournamentDetailPage({
       },
       matches: {
         include: {
-          homeTeam: { select: { id: true, name: true } },
-          awayTeam: { select: { id: true, name: true } },
+          homeTeam: { select: { id: true, name: true, logoUrl: true } },
+          awayTeam: { select: { id: true, name: true, logoUrl: true } },
           events: {
             include: {
               player: { select: { name: true } },
@@ -167,6 +167,7 @@ export default async function TournamentDetailPage({
           standings={tournament.standings.map((s) => ({
             teamId: s.team.id,
             teamName: s.team.name,
+            teamLogoUrl: s.team.logoUrl,
             groupName: s.groupName,
             points: s.points,
             gamesPlayed: s.gamesPlayed,

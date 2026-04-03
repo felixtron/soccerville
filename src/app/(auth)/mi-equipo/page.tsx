@@ -13,6 +13,9 @@ import {
   ChevronRight,
   Target,
 } from "lucide-react";
+import { LogoUpload } from "@/components/captain/logo-upload";
+import { RosterEditor } from "@/components/captain/roster-editor";
+import { TeamLogo } from "@/components/shared/team-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -165,16 +168,19 @@ export default async function MiEquipoPage() {
       <header className="bg-[#0a0a0a] text-white">
         <div className="mx-auto max-w-5xl px-4 py-8 md:py-12">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/40 mb-1">
-                Portal Capitan
-              </p>
-              <h1 className="font-display text-3xl md:text-4xl uppercase tracking-tight">
-                {team.name}
-              </h1>
-              <p className="text-white/40 text-sm mt-1">
-                Capitan: {session.user.name}
-              </p>
+            <div className="flex items-center gap-5">
+              <LogoUpload currentUrl={team.logoUrl} teamName={team.name} />
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/40 mb-1">
+                  Portal Capitan
+                </p>
+                <h1 className="font-display text-3xl md:text-4xl uppercase tracking-tight">
+                  {team.name}
+                </h1>
+                <p className="text-white/40 text-sm mt-1">
+                  Capitan: {session.user.name}
+                </p>
+              </div>
             </div>
             <form action="/api/auth/signout" method="POST">
               <button className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors">
@@ -230,7 +236,7 @@ export default async function MiEquipoPage() {
         )}
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Roster */}
+          {/* Roster (editable) */}
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -239,57 +245,15 @@ export default async function MiEquipoPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {team.players.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  No hay jugadores registrados.
-                </p>
-              ) : (
-                <div className="space-y-1.5">
-                  {team.players.map((p) => {
-                    const stats = playerStatsMap.get(p.id);
-                    return (
-                      <div
-                        key={p.id}
-                        className="flex items-center justify-between p-2 rounded-lg hover:bg-[#f5f5f5] transition-colors"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-xs font-mono text-muted-foreground w-5 text-right">
-                            {p.number ?? "—"}
-                          </span>
-                          <div>
-                            <span className="text-sm font-medium">{p.name}</span>
-                            {p.position && (
-                              <span className="ml-1.5 text-[10px] text-muted-foreground uppercase">
-                                {p.position}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          {stats?.goals ? (
-                            <span className="flex items-center gap-0.5">
-                              <Target className="h-3 w-3 text-muted-foreground" />
-                              {stats.goals}
-                            </span>
-                          ) : null}
-                          {stats?.yellowCards ? (
-                            <span className="flex items-center gap-0.5">
-                              <span className="inline-block w-2 h-2.5 bg-amber-400 rounded-[1px]" />
-                              {stats.yellowCards}
-                            </span>
-                          ) : null}
-                          {stats?.redCards ? (
-                            <span className="flex items-center gap-0.5">
-                              <span className="inline-block w-2 h-2.5 bg-red-500 rounded-[1px]" />
-                              {stats.redCards}
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              <RosterEditor
+                players={team.players.map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  number: p.number,
+                  position: p.position,
+                }))}
+                playerStats={Object.fromEntries(playerStatsMap)}
+              />
             </CardContent>
           </Card>
 

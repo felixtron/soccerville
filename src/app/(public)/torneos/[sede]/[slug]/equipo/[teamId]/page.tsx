@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
 import { ArrowLeft, Users, Trophy, Target, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { TeamLogo } from "@/components/shared/team-logo";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -152,12 +153,17 @@ export default async function TeamProfilePage({
             <ArrowLeft className="h-4 w-4 mr-1" />
             {tournament.name}
           </LinkButton>
-          <h1 className="font-display text-4xl md:text-6xl lg:text-7xl uppercase tracking-tight leading-[0.85]">
-            {team.name}
-          </h1>
-          <p className="mt-3 text-white/40 text-sm">
-            Capitan: {team.captain.name} &middot; {tournament.name}
-          </p>
+          <div className="flex items-center gap-5">
+            <TeamLogo logoUrl={team.logoUrl} teamName={team.name} size="xl" className="ring-white/20" />
+            <div>
+              <h1 className="font-display text-4xl md:text-6xl lg:text-7xl uppercase tracking-tight leading-[0.85]">
+                {team.name}
+              </h1>
+              <p className="mt-3 text-white/40 text-sm">
+                Capitan: {team.captain.name} &middot; {tournament.name}
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 

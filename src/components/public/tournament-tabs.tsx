@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Trophy, Target, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { TeamLogo } from "@/components/shared/team-logo";
 import type { TopScorer, CardSummary } from "@/lib/fixtures";
 
 // ─── Types ─────────────────────────────────────────────────
@@ -20,8 +21,8 @@ type MatchEvent = {
 type MatchData = {
   id: string;
   matchDay: number;
-  homeTeam: { id: string; name: string };
-  awayTeam: { id: string; name: string };
+  homeTeam: { id: string; name: string; logoUrl: string | null };
+  awayTeam: { id: string; name: string; logoUrl: string | null };
   homeScore: number | null;
   awayScore: number | null;
   date: string | null;
@@ -35,6 +36,7 @@ type MatchData = {
 type StandingData = {
   teamId: string;
   teamName: string;
+  teamLogoUrl: string | null;
   groupName: string | null;
   points: number;
   gamesPlayed: number;
@@ -276,9 +278,10 @@ function ScheduleView({
                           <td className="p-2 text-right font-medium">
                             <Link
                               href={`/torneos/${sede}/${slug}/equipo/${m.homeTeam.id}`}
-                              className="hover:underline"
+                              className="hover:underline inline-flex items-center gap-1.5 justify-end"
                             >
                               {m.homeTeam.name}
+                              <TeamLogo logoUrl={m.homeTeam.logoUrl} teamName={m.homeTeam.name} size="xs" />
                             </Link>
                           </td>
                           <td className="p-2 text-center">
@@ -295,8 +298,9 @@ function ScheduleView({
                           <td className="p-2 font-medium">
                             <Link
                               href={`/torneos/${sede}/${slug}/equipo/${m.awayTeam.id}`}
-                              className="hover:underline"
+                              className="hover:underline inline-flex items-center gap-1.5"
                             >
+                              <TeamLogo logoUrl={m.awayTeam.logoUrl} teamName={m.awayTeam.name} size="xs" />
                               {m.awayTeam.name}
                             </Link>
                           </td>
@@ -390,8 +394,9 @@ function StandingsView({
                 <td className="p-3 font-medium">
                   <Link
                     href={`/torneos/${sede}/${slug}/equipo/${s.teamId}`}
-                    className="hover:underline"
+                    className="hover:underline flex items-center gap-2"
                   >
+                    <TeamLogo logoUrl={s.teamLogoUrl} teamName={s.teamName} size="xs" />
                     {s.teamName}
                   </Link>
                 </td>
