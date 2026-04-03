@@ -559,3 +559,35 @@ export async function updateMatchSchedule(
 
   revalidatePath(`/admin/torneos/${match.tournamentId}`);
 }
+
+// ─── Payments ───────────────────────────────────────────────
+
+export async function markPaymentCash(paymentId: string) {
+  await requireAdmin();
+
+  await prisma.payment.update({
+    where: { id: paymentId },
+    data: { status: "COMPLETED" },
+  });
+
+  revalidatePath("/admin/pagos");
+  revalidatePath("/admin/dashboard");
+}
+
+export async function createManualPayment(formData: FormData) {
+  await requireAdmin();
+
+  await prisma.payment.create({
+    data: {
+      amount: parseInt(formData.get("amount") as string),
+      type: formData.get("type") as any,
+      venueId: formData.get("venueId") as string,
+      status: "COMPLETED",
+      description: (formData.get("description") as string) || null,
+      tournamentId: (formData.get("tournamentId") as string) || null,
+    },
+  });
+
+  revalidatePath("/admin/pagos");
+  revalidatePath("/admin/dashboard");
+}

@@ -12,6 +12,8 @@ import {
   Store,
   UserCog,
   Bell,
+  DollarSign,
+  CreditCard,
   LogOut,
   ChevronLeft,
   Menu,
@@ -24,8 +26,10 @@ const navItems = [
   { href: "/admin/equipos", label: "Equipos", icon: Users },
   { href: "/admin/reservas", label: "Reservas", icon: CalendarDays },
   { href: "/admin/espacios", label: "Espacios", icon: Store },
+  { href: "/admin/pagos", label: "Pagos", icon: DollarSign },
   { href: "/admin/usuarios", label: "Usuarios", icon: UserCog },
   { href: "/admin/notificaciones", label: "Notificaciones", icon: Bell },
+  { href: "/admin/stripe", label: "Stripe", icon: CreditCard },
 ];
 
 export function AdminSidebar() {
