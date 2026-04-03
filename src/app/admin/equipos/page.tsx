@@ -2,6 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Trophy, User } from "lucide-react";
+import { CreateTeamButton } from "@/components/admin/team-form";
+import { DeleteButton } from "@/components/admin/delete-button";
+import { deleteTeam } from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +28,7 @@ export default async function EquiposAdmin() {
             {teams.length} equipos registrados
           </p>
         </div>
+        <CreateTeamButton />
       </div>
 
       {teams.length === 0 ? (
@@ -58,15 +62,18 @@ export default async function EquiposAdmin() {
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Badge variant="secondary" className="text-xs">
-                    <Users className="h-3 w-3 mr-1" />
-                    {(team as any)._count.players} jugadores
-                  </Badge>
-                  <Badge variant="secondary" className="text-xs">
-                    <Trophy className="h-3 w-3 mr-1" />
-                    {(team as any)._count.tournaments} torneos
-                  </Badge>
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      <Users className="h-3 w-3 mr-1" />
+                      {(team as any)._count.players} jugadores
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      <Trophy className="h-3 w-3 mr-1" />
+                      {(team as any)._count.tournaments} torneos
+                    </Badge>
+                  </div>
+                  <DeleteButton label="equipo" onDelete={deleteTeam.bind(null, team.id)} />
                 </div>
               </CardContent>
             </Card>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -61,7 +62,9 @@ export default async function TorneosAdmin() {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle className="font-display text-xl uppercase tracking-tight">
-                    {t.name}
+                    <Link href={`/admin/torneos/${t.id}`} className="hover:text-primary transition-colors">
+                      {t.name}
+                    </Link>
                   </CardTitle>
                   <div className="flex items-center gap-1 shrink-0">
                     <Badge className={status.class}>{status.label}</Badge>
