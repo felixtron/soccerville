@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -204,28 +205,42 @@ export default async function MiEquipoPage() {
 
       {/* Header */}
       <header className="bg-[#0a0a0a] text-white">
-        <div className="mx-auto max-w-5xl px-4 py-8 md:py-12">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-5">
-              <LogoUpload currentUrl={team.logoUrl} teamName={team.name} />
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/40 mb-1">
-                  Portal Capitan
-                </p>
-                <h1 className="font-display text-3xl md:text-4xl uppercase tracking-tight">
-                  {team.name}
-                </h1>
-                <p className="text-white/40 text-sm mt-1">
-                  Capitan: {session.user.name}
-                </p>
-              </div>
+        {/* Top bar with Soccerville logo */}
+        <div className="mx-auto max-w-5xl px-4 pt-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
+            <Image
+              src="/images/soccerville-w.svg"
+              alt="Soccerville"
+              width={28}
+              height={28}
+              className="h-6 w-6 object-contain"
+            />
+            <span className="font-display text-sm uppercase tracking-tight hidden sm:inline">
+              Soccerville
+            </span>
+          </Link>
+          <form action="/api/auth/signout" method="POST">
+            <button className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors">
+              <LogOut className="h-3.5 w-3.5" />
+              Salir
+            </button>
+          </form>
+        </div>
+        {/* Team info */}
+        <div className="mx-auto max-w-5xl px-4 py-8 md:py-10">
+          <div className="flex items-center gap-5">
+            <LogoUpload currentUrl={team.logoUrl} teamName={team.name} />
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-white/40 mb-1">
+                Portal Capitan
+              </p>
+              <h1 className="font-display text-3xl md:text-4xl uppercase tracking-tight">
+                {team.name}
+              </h1>
+              <p className="text-white/40 text-sm mt-1">
+                Capitan: {session.user.name}
+              </p>
             </div>
-            <form action="/api/auth/signout" method="POST">
-              <button className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors">
-                <LogOut className="h-3.5 w-3.5" />
-                Salir
-              </button>
-            </form>
           </div>
         </div>
       </header>
