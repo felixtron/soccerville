@@ -2,7 +2,7 @@
 set -e
 
 echo "Syncing database schema..."
-npx prisma db push --skip-generate
+node node_modules/prisma/build/index.js db push --skip-generate
 echo "Schema sync complete."
 
 echo "Starting server..."
