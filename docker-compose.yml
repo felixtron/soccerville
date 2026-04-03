@@ -31,12 +31,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
     networks:
       - default
       - dokploy-network
 
 volumes:
   postgres_data:
+  uploads_data:
 
 networks:
   dokploy-network:
