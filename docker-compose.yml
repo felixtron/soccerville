@@ -23,6 +23,11 @@ services:
       - "3001:3000"
     environment:
       DATABASE_URL: postgresql://soccerville:soccerville@db:5432/soccerville
+      AUTH_SECRET: ${AUTH_SECRET:-soccerville-prod-secret-change-me-32chars!}
+      AUTH_URL: ${AUTH_URL:-https://soccerville.prosuite.pro}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
     depends_on:
       db:
         condition: service_healthy
