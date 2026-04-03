@@ -69,6 +69,22 @@ export async function removePlayer(playerId: string) {
   revalidatePath("/mi-equipo");
 }
 
+// ─── Notifications ─────────────────────────────────────────
+
+export async function markNotificationRead(notificationId: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
+  const userId = (session.user as any).id as string;
+
+  await prisma.notificationRead.upsert({
+    where: { notificationId_userId: { notificationId, userId } },
+    update: {},
+    create: { notificationId, userId },
+  });
+
+  revalidatePath("/mi-equipo");
+}
+
 // ─── Logo ──────────────────────────────────────────────────
 
 export async function updateTeamLogo(logoUrl: string) {

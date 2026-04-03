@@ -11,6 +11,7 @@ import {
   CalendarDays,
   Store,
   UserCog,
+  Bell,
   LogOut,
   ChevronLeft,
   Menu,
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/admin/reservas", label: "Reservas", icon: CalendarDays },
   { href: "/admin/espacios", label: "Espacios", icon: Store },
   { href: "/admin/usuarios", label: "Usuarios", icon: UserCog },
+  { href: "/admin/notificaciones", label: "Notificaciones", icon: Bell },
 ];
 
 export function AdminSidebar() {

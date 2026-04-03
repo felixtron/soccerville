@@ -18,6 +18,7 @@ import { LogoUpload } from "@/components/captain/logo-upload";
 import { RosterEditor } from "@/components/captain/roster-editor";
 import { FormationField } from "@/components/captain/formation-field";
 import { ChampionBanner } from "@/components/captain/champion-banner";
+import { NotificationsFeed } from "@/components/captain/notifications-feed";
 import { TeamLogo } from "@/components/shared/team-logo";
 
 export const dynamic = "force-dynamic";
@@ -192,6 +193,38 @@ export default async function MiEquipoPage() {
     E: "bg-amber-500 text-white",
   };
 
+  // Fetch notifications for this captain
+  // Show: ALL, matching venue, matching tournament, or matching team
+  const tournamentIds = team.tournaments.map((tt) => tt.tournamentId);
+  const venueIds = team.tournaments.map((tt) => tt.tournament.venue?.slug).filter(Boolean);
+
+  const rawNotifications = await prisma.notification.findMany({
+    where: {
+      OR: [
+        { audience: "ALL" },
+        { audience: "TEAM", teamId: team.id },
+        ...(tournamentIds.length > 0
+          ? [{ audience: "TOURNAMENT" as const, tournamentId: { in: tournamentIds } }]
+          : []),
+      ],
+    },
+    include: {
+      author: { select: { name: true } },
+      reads: { where: { userId }, select: { id: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+
+  const notifications = rawNotifications.map((n) => ({
+    id: n.id,
+    title: n.title,
+    body: n.body,
+    authorName: n.author.name,
+    createdAt: n.createdAt.toISOString(),
+    isRead: n.reads.length > 0,
+  }));
+
   return (
     <div className="min-h-screen bg-[#fafafa]">
       {/* Champion celebration */}
@@ -246,6 +279,9 @@ export default async function MiEquipoPage() {
       </header>
 
       <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
+        {/* Notifications */}
+        <NotificationsFeed notifications={notifications} />
+
         {/* Standings summary */}
         {standings.length > 0 && (
           <div className="grid gap-4 sm:grid-cols-2">

@@ -68,6 +68,13 @@ enum SpaceStatus {
   RENTED
 }
 
+enum NotificationAudience {
+  ALL
+  VENUE
+  TOURNAMENT
+  TEAM
+}
+
 enum ProgramType {
   SCHOOL
   FIXED_TEAM
@@ -90,18 +97,20 @@ enum MatchEventType {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  phone     String?
-  password  String
-  role      UserRole @default(CAPTAIN)
-  venueId   String?
-  venue     Venue?   @relation(fields: [venueId], references: [id])
-  team      Team?
-  payments  Payment[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String             @id @default(cuid())
+  email             String             @unique
+  name              String
+  phone             String?
+  password          String
+  role              UserRole           @default(CAPTAIN)
+  venueId           String?
+  venue             Venue?             @relation(fields: [venueId], references: [id])
+  team              Team?
+  payments          Payment[]
+  notifications     Notification[]
+  notificationReads NotificationRead[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }
 
 model Venue {
@@ -125,6 +134,7 @@ model Venue {
   spaces           CommercialSpace[]
   operators        User[]
   payments         Payment[]
+  notifications    Notification[]
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
@@ -147,6 +157,7 @@ model Tournament {
   teams           TournamentTeam[]
   matches         Match[]
   standings       Standing[]
+  notifications   Notification[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
@@ -160,12 +171,13 @@ model Team {
   captain     User             @relation(fields: [captainId], references: [id])
   logoUrl     String?
   tournaments TournamentTeam[]
-  homeMatches Match[]          @relation("HomeTeam")
-  awayMatches Match[]          @relation("AwayTeam")
-  standings   Standing[]
-  players     Player[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  homeMatches   Match[]          @relation("HomeTeam")
+  awayMatches   Match[]          @relation("AwayTeam")
+  standings     Standing[]
+  players       Player[]
+  notifications Notification[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 }
 
 model Player {
@@ -320,4 +332,37 @@ model Payment {
 
   @@index([userId])
   @@index([venueId])
+}
+
+model Notification {
+  id           String               @id @default(cuid())
+  title        String
+  body         String
+  audience     NotificationAudience @default(ALL)
+  venueId      String?
+  venue        Venue?               @relation(fields: [venueId], references: [id])
+  tournamentId String?
+  tournament   Tournament?          @relation(fields: [tournamentId], references: [id])
+  teamId       String?
+  team         Team?                @relation(fields: [teamId], references: [id])
+  authorId     String
+  author       User                 @relation(fields: [authorId], references: [id])
+  reads        NotificationRead[]
+  createdAt    DateTime             @default(now())
+
+  @@index([audience])
+  @@index([venueId])
+  @@index([tournamentId])
+  @@index([teamId])
+}
+
+model NotificationRead {
+  id             String       @id @default(cuid())
+  notificationId String
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt         DateTime     @default(now())
+
+  @@unique([notificationId, userId])
 }

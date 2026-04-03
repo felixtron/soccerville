@@ -506,6 +506,39 @@ export async function removeMatchEvent(eventId: string) {
 
 // ─── Match Schedule ────────────────────────────────────────
 
+// ─── Notifications ─────────────────────────────────────────
+
+export async function sendNotification(formData: FormData) {
+  const session = await requireAdmin();
+
+  const audience = formData.get("audience") as string;
+  const data: any = {
+    title: formData.get("title") as string,
+    body: formData.get("body") as string,
+    audience,
+    authorId: (session.user as any).id,
+  };
+
+  if (audience === "VENUE" && formData.get("venueId")) {
+    data.venueId = formData.get("venueId") as string;
+  }
+  if (audience === "TOURNAMENT" && formData.get("tournamentId")) {
+    data.tournamentId = formData.get("tournamentId") as string;
+  }
+  if (audience === "TEAM" && formData.get("teamId")) {
+    data.teamId = formData.get("teamId") as string;
+  }
+
+  await prisma.notification.create({ data });
+  revalidatePath("/admin/notificaciones");
+}
+
+export async function deleteNotification(id: string) {
+  await requireAdmin();
+  await prisma.notification.delete({ where: { id } });
+  revalidatePath("/admin/notificaciones");
+}
+
 export async function updateMatchSchedule(
   matchId: string,
   date: string | null,
