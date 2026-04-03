@@ -219,53 +219,66 @@ El motor de calendarios soporta:
 
 ## Phase Plan
 
-### Phase 1: Foundation + Public Site (MVP)
+### Phase 1: Foundation + Public Site (MVP) ✅
 **Goal**: Sitio publico visible con info de torneos, sedes, y contacto WhatsApp.
-- Setup proyecto (Next.js, Prisma, PostgreSQL, Docker)
-- Data model base (Venue, Tournament, Team)
-- Paginas publicas: Home, Torneos (por sede), Renta de cancha, Escuela, Espacios, Contacto
-- Mobile-first responsive design
-- SEO basico (meta tags, sitemap)
-- Deploy en Dokploy
+- ✅ Setup proyecto (Next.js 16, Prisma 7, PostgreSQL 16, Docker)
+- ✅ Data model completo (15 modelos, 12 enums)
+- ✅ Paginas publicas: Home, Torneos (por sede), Renta de cancha, Escuela, Espacios, Contacto
+- ✅ Mobile-first responsive design con Tailwind 4 + shadcn/ui
+- ✅ SEO basico (meta tags, titulos dinamicos)
+- ✅ Deploy en Dokploy (soccerville.prosuite.pro)
 
-### Phase 2: Admin Panel + Auth
+### Phase 2: Admin Panel + Auth ✅
 **Goal**: Panel admin funcional para gestionar contenido.
-- Auth system (NextAuth.js) con roles
-- Admin dashboard con metricas basicas
-- CRUD: Torneos, Equipos, Sedes, Programas, Espacios comerciales
-- Gestion de usuarios y operadores
+- ✅ Auth system (NextAuth.js v5) con roles ADMIN/OPERATOR/CAPTAIN
+- ✅ Middleware de proteccion de rutas (/admin/*, /mi-equipo/*)
+- ✅ Admin dashboard con metricas (torneos, equipos, reservas, espacios)
+- ✅ CRUD completo: Torneos, Equipos, Reservas, Espacios, Usuarios
+- ✅ Server Actions con requireAdmin() guard
+- ✅ Dialog forms con crear/editar/eliminar + confirmacion
 
-### Phase 3: Tournaments Engine
+### Phase 3: Tournaments Engine ✅
 **Goal**: Sistema completo de torneos con fixtures automaticos.
-- Inscripcion de equipos (capitan crea cuenta)
-- Generacion automatica de fixtures (round-robin)
-- Registro de resultados por admin/operador
-- Tabla de posiciones automatica
-- Vista publica de calendario y standings
+- ✅ Inscripcion de equipos desde admin (con creacion de cuenta capitan)
+- ✅ Generacion automatica de fixtures (round-robin, soporte bye)
+- ✅ Soporte de grupos para torneos grandes
+- ✅ Registro de resultados inline con calculo automatico de standings
+- ✅ Eventos de partido: goles, autogoles, tarjetas amarillas/rojas, sanciones
+- ✅ Tabla de posiciones: 3/1/0 pts, desempate por GD, penalizaciones
+- ✅ Top goleadores y resumen de tarjetas
+- ✅ Vista publica: detalle de torneo, calendario, standings, perfil de equipo
+- ✅ Portal de capitan: roster, formacion tactica (GSAP), logo, notificaciones
+- ✅ Estados especiales: DEFAULT (3-0), ABANDONED
 
-### Phase 4: Payments (Stripe)
-**Goal**: Pagos online funcionando.
-- Stripe integration (Checkout Sessions)
-- Pago de inscripcion a torneo
-- Pago de reserva de cancha
-- Stripe Subscriptions para foodtrucks/publicidad
-- Webhook handling
-- Admin: marcar pagos en efectivo
+### Phase 4: Payments (Stripe Connect) ✅
+**Goal**: Pagos online con modelo de comision de plataforma.
+- ✅ Stripe Connect: Prosuite = plataforma, cada sede = cuenta Express
+- ✅ Destination charges con 5% application_fee_amount
+- ✅ Checkout Sessions (tarjeta + OXXO)
+- ✅ Webhook handler: checkout.session.completed, async_payment, account.updated
+- ✅ Admin /admin/stripe: onboarding por sede, revenue dashboard
+- ✅ Admin /admin/pagos: historial, marcar pagos en efectivo
+- ✅ PayButton componente reutilizable
+- ✅ Paginas de exito/cancelacion
 
-### Phase 5: Bookings System
+### Phase 5: Bookings System ✅
 **Goal**: Reservas de cancha online.
-- Calendario de disponibilidad por sede
-- Flujo de reserva con pago integrado
-- Confirmacion automatica
-- Admin: gestionar reservas, bloquear horarios
+- ✅ Wizard interactivo: sede → calendario → horario → datos → pago
+- ✅ Calendario con navegacion por mes, fechas pasadas deshabilitadas
+- ✅ Disponibilidad en tiempo real (fetch de slots por sede/fecha)
+- ✅ Deteccion de conflictos server-side (anti doble-reserva)
+- ✅ Pago integrado con Stripe o confirmacion por WhatsApp
+- ✅ API: GET /api/bookings (disponibilidad) + POST (reservar)
+- ✅ Admin: CRUD de reservas desde /admin/reservas
 
-### Phase 6: Polish & Extras
+### Phase 6: Polish & Extras (pendiente)
 **Goal**: Refinamiento y features secundarios.
-- Notificaciones WhatsApp (API o links directos)
-- PWA setup (installable en celular)
-- Reportes financieros en admin
-- Optimizacion de performance
-- Torneo privado (cotizacion para empresas/amigos)
+- [ ] Notificaciones WhatsApp (API o links directos)
+- [ ] PWA setup (installable en celular)
+- [ ] Reportes financieros en admin
+- [ ] Optimizacion de performance
+- [ ] Torneo privado (cotizacion para empresas/amigos)
+- [ ] Stripe Subscriptions para foodtrucks/publicidad (pago recurrente)
 
 ---
 
