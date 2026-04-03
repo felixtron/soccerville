@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { LogoUpload } from "@/components/captain/logo-upload";
 import { RosterEditor } from "@/components/captain/roster-editor";
+import { FormationField } from "@/components/captain/formation-field";
+import { ChampionBanner } from "@/components/captain/champion-banner";
 import { TeamLogo } from "@/components/shared/team-logo";
 
 export const dynamic = "force-dynamic";
@@ -125,6 +127,33 @@ export default async function MiEquipoPage() {
     },
   });
 
+  // Check if team is champion of any finished tournament
+  const championTournament = await prisma.standing.findFirst({
+    where: {
+      teamId: team.id,
+      tournament: { status: "FINISHED" },
+    },
+    include: {
+      tournament: { select: { name: true } },
+    },
+    orderBy: { points: "desc" },
+  });
+
+  // A team is champion if they have the highest points in a FINISHED tournament
+  let isChampion = false;
+  let championTournamentName = "";
+  if (championTournament) {
+    const topStanding = await prisma.standing.findFirst({
+      where: { tournamentId: championTournament.tournamentId },
+      orderBy: [{ points: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
+      select: { teamId: true },
+    });
+    if (topStanding?.teamId === team.id) {
+      isChampion = true;
+      championTournamentName = championTournament.tournament.name;
+    }
+  }
+
   const playerStatsMap = new Map<
     string,
     { goals: number; yellowCards: number; redCards: number }
@@ -164,6 +193,15 @@ export default async function MiEquipoPage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
+      {/* Champion celebration */}
+      {isChampion && (
+        <ChampionBanner
+          teamName={team.name}
+          logoUrl={team.logoUrl}
+          tournamentName={championTournamentName}
+        />
+      )}
+
       {/* Header */}
       <header className="bg-[#0a0a0a] text-white">
         <div className="mx-auto max-w-5xl px-4 py-8 md:py-12">
@@ -235,7 +273,7 @@ export default async function MiEquipoPage() {
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-2">
           {/* Roster (editable) */}
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-3">
@@ -257,8 +295,27 @@ export default async function MiEquipoPage() {
             </CardContent>
           </Card>
 
+          {/* Formation */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Formacion</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FormationField
+                players={team.players.map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  number: p.number,
+                  position: p.position,
+                }))}
+                teamName={team.name}
+                logoUrl={team.logoUrl}
+              />
+            </CardContent>
+          </Card>
+
           {/* Matches */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6">
             {/* Upcoming */}
             {upcoming.length > 0 && (
               <Card className="border-0 shadow-sm">
