@@ -30,6 +30,8 @@ import {
   recordResult,
   clearResult,
   createTeam,
+  addMatchEvent,
+  removeMatchEvent,
 } from "@/app/admin/actions";
 
 // ─── Generate Fixtures Button ──────────────────────────────
@@ -197,23 +199,43 @@ export function UnenrollTeamButton({
 
 // ─── Record Match Result ────────────────────────────────────
 
+type MatchPlayer = { id: string; name: string; number: number | null };
+type MatchEventData = {
+  id: string;
+  type: string;
+  minute: number | null;
+  playerId: string;
+  teamId: string;
+  player: { name: string };
+};
+
 export function MatchResultRow({
   match,
 }: {
   match: {
     id: string;
     matchDay: number;
-    homeTeam: { name: string };
-    awayTeam: { name: string };
+    homeTeam: { id: string; name: string; players: MatchPlayer[] };
+    awayTeam: { id: string; name: string; players: MatchPlayer[] };
     homeScore: number | null;
     awayScore: number | null;
     status: string;
+    events: MatchEventData[];
   };
 }) {
   const [editing, setEditing] = useState(false);
+  const [showEvents, setShowEvents] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const isPlayed = match.status === "PLAYED";
+  const isPlayed = match.status === "PLAYED" || match.status === "DEFAULTED" || match.status === "ABANDONED";
+
+  const eventIcons: Record<string, string> = {
+    GOAL: "⚽",
+    OWN_GOAL: "⚽🔴",
+    YELLOW_CARD: "🟨",
+    RED_CARD: "🟥",
+    SANCTION: "⛔",
+  };
 
   if (editing) {
     return (
@@ -267,45 +289,194 @@ export function MatchResultRow({
   }
 
   return (
-    <tr className="border-b hover:bg-[#fafafa] transition-colors">
-      <td className="p-3 text-sm text-center text-muted-foreground">J{match.matchDay}</td>
-      <td className="p-3 text-sm text-right font-medium">{match.homeTeam.name}</td>
-      <td className="p-3 text-center">
-        {isPlayed ? (
-          <span className="font-bold text-sm">
-            {match.homeScore} - {match.awayScore}
-          </span>
-        ) : (
-          <span className="text-xs text-muted-foreground">vs</span>
-        )}
-      </td>
-      <td className="p-3 text-sm font-medium">{match.awayTeam.name}</td>
-      <td className="p-3 text-center">
-        <div className="flex items-center justify-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => setEditing(true)}
-            title="Registrar resultado"
-          >
-            <Trophy className="h-3.5 w-3.5 text-muted-foreground" />
-          </Button>
-          {isPlayed && (
+    <>
+      <tr className="border-b hover:bg-[#fafafa] transition-colors">
+        <td className="p-3 text-sm text-center text-muted-foreground">J{match.matchDay}</td>
+        <td className="p-3 text-sm text-right font-medium">{match.homeTeam.name}</td>
+        <td className="p-3 text-center">
+          {isPlayed ? (
+            <span className="font-bold text-sm">
+              {match.homeScore} - {match.awayScore}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">vs</span>
+          )}
+        </td>
+        <td className="p-3 text-sm font-medium">{match.awayTeam.name}</td>
+        <td className="p-3 text-center">
+          <div className="flex items-center justify-center gap-1">
             <Button
               variant="ghost"
               size="icon-sm"
-              className="text-muted-foreground hover:text-red-600"
-              onClick={() => {
-                startTransition(() => clearResult(match.id));
-              }}
-              title="Borrar resultado"
+              onClick={() => setEditing(true)}
+              title="Registrar resultado"
             >
-              <X className="h-3.5 w-3.5" />
+              <Trophy className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
-          )}
+            {isPlayed && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setShowEvents(!showEvents)}
+                  title="Eventos del partido"
+                  className={showEvents ? "bg-muted" : ""}
+                >
+                  <span className="text-xs">⚽</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="text-muted-foreground hover:text-red-600"
+                  onClick={() => {
+                    startTransition(() => clearResult(match.id));
+                  }}
+                  title="Borrar resultado"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </>
+            )}
+          </div>
+        </td>
+      </tr>
+      {/* Events inline */}
+      {isPlayed && match.events.length > 0 && !showEvents && (
+        <tr className="border-b">
+          <td colSpan={5} className="px-3 pb-2">
+            <div className="flex flex-wrap gap-1.5">
+              {match.events.map((e) => (
+                <span key={e.id} className="text-[10px] text-muted-foreground">
+                  {eventIcons[e.type] ?? "?"} {e.player.name}
+                  {e.minute ? ` ${e.minute}'` : ""}
+                </span>
+              ))}
+            </div>
+          </td>
+        </tr>
+      )}
+      {/* Events editor */}
+      {showEvents && (
+        <tr className="border-b bg-[#fafafa]">
+          <td colSpan={5} className="p-3">
+            <MatchEventsEditor match={match} />
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+function MatchEventsEditor({
+  match,
+}: {
+  match: {
+    id: string;
+    homeTeam: { id: string; name: string; players: MatchPlayer[] };
+    awayTeam: { id: string; name: string; players: MatchPlayer[] };
+    events: MatchEventData[];
+  };
+}) {
+  const [pending, startTransition] = useTransition();
+
+  const eventIcons: Record<string, string> = {
+    GOAL: "⚽ Gol",
+    OWN_GOAL: "⚽🔴 Autogol",
+    YELLOW_CARD: "🟨 Amarilla",
+    RED_CARD: "🟥 Roja",
+    SANCTION: "⛔ Sancion",
+  };
+
+  const allPlayers = [
+    ...match.homeTeam.players.map((p) => ({ ...p, teamId: match.homeTeam.id, teamName: match.homeTeam.name })),
+    ...match.awayTeam.players.map((p) => ({ ...p, teamId: match.awayTeam.id, teamName: match.awayTeam.name })),
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        Eventos del partido
+      </div>
+
+      {/* Existing events */}
+      {match.events.length > 0 && (
+        <div className="space-y-1">
+          {match.events.map((e) => (
+            <div key={e.id} className="flex items-center justify-between text-xs p-1.5 rounded bg-background">
+              <span>
+                {eventIcons[e.type] ?? e.type} — {e.player.name}
+                {e.minute ? ` (${e.minute}')` : ""}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="h-5 w-5 text-muted-foreground hover:text-red-600"
+                disabled={pending}
+                onClick={() => {
+                  startTransition(() => removeMatchEvent(e.id));
+                }}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
         </div>
-      </td>
-    </tr>
+      )}
+
+      {/* Add event form */}
+      {allPlayers.length > 0 ? (
+        <form
+          className="flex flex-wrap items-end gap-2"
+          action={(formData) => {
+            startTransition(async () => {
+              const playerId = formData.get("playerId") as string;
+              const player = allPlayers.find((p) => p.id === playerId);
+              if (!player) return;
+              await addMatchEvent(
+                match.id,
+                playerId,
+                player.teamId,
+                formData.get("type") as string,
+                formData.get("minute") ? parseInt(formData.get("minute") as string) : undefined,
+              );
+            });
+          }}
+        >
+          <select name="playerId" required className="text-xs border rounded px-2 py-1.5 bg-background">
+            <option value="">Jugador...</option>
+            <optgroup label={match.homeTeam.name}>
+              {match.homeTeam.players.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.number ? `#${p.number} ` : ""}{p.name}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label={match.awayTeam.name}>
+              {match.awayTeam.players.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.number ? `#${p.number} ` : ""}{p.name}
+                </option>
+              ))}
+            </optgroup>
+          </select>
+          <select name="type" required className="text-xs border rounded px-2 py-1.5 bg-background">
+            <option value="GOAL">⚽ Gol</option>
+            <option value="OWN_GOAL">⚽🔴 Autogol</option>
+            <option value="YELLOW_CARD">🟨 Amarilla</option>
+            <option value="RED_CARD">🟥 Roja</option>
+            <option value="SANCTION">⛔ Sancion</option>
+          </select>
+          <Input name="minute" type="number" min="0" max="120" placeholder="Min" className="w-16 h-7 text-xs" />
+          <Button type="submit" size="sm" disabled={pending} className="h-7 text-xs">
+            {pending ? "..." : "+ Agregar"}
+          </Button>
+        </form>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Registra jugadores en los equipos para poder agregar eventos.
+        </p>
+      )}
+    </div>
   );
 }
 

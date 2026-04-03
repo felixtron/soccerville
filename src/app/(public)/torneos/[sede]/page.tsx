@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/link-button";
-import { Users, DollarSign, Gavel, Clock, Trophy } from "lucide-react";
+import { Users, DollarSign, Gavel, Clock, Trophy, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -125,7 +126,7 @@ export default async function TorneosPage({ params }: { params: Promise<{ sede: 
             </div>
             <div className="grid gap-6 sm:grid-cols-2">
               {inProgress.map((t) => (
-                <TournamentCard key={t.id} tournament={t} showStandings />
+                <TournamentCard key={t.id} tournament={t} showStandings sede={sede} />
               ))}
             </div>
           </section>
@@ -142,7 +143,7 @@ export default async function TorneosPage({ params }: { params: Promise<{ sede: 
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {open.map((t) => (
-                <TournamentCard key={t.id} tournament={t} showCta venueWhatsapp={venue.whatsapp} />
+                <TournamentCard key={t.id} tournament={t} showCta venueWhatsapp={venue.whatsapp} sede={sede} />
               ))}
             </div>
           </section>
@@ -162,7 +163,7 @@ export default async function TorneosPage({ params }: { params: Promise<{ sede: 
             </p>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {full.map((t) => (
-                <TournamentCard key={t.id} tournament={t} />
+                <TournamentCard key={t.id} tournament={t} sede={sede} />
               ))}
             </div>
           </section>
@@ -179,7 +180,7 @@ export default async function TorneosPage({ params }: { params: Promise<{ sede: 
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {finished.map((t) => (
-                <TournamentCard key={t.id} tournament={t} showStandings />
+                <TournamentCard key={t.id} tournament={t} showStandings sede={sede} />
               ))}
             </div>
           </section>
@@ -192,6 +193,7 @@ export default async function TorneosPage({ params }: { params: Promise<{ sede: 
 type TournamentWithCounts = {
   id: string;
   name: string;
+  slug: string;
   category: string;
   schedule: string;
   maxTeams: number;
@@ -212,11 +214,13 @@ function TournamentCard({
   showCta = false,
   showStandings = false,
   venueWhatsapp,
+  sede,
 }: {
   tournament: TournamentWithCounts;
   showCta?: boolean;
   showStandings?: boolean;
   venueWhatsapp?: string;
+  sede?: string;
 }) {
   const teamCount = t._count.teams;
   const isOpen = t.status === "OPEN";
@@ -275,6 +279,17 @@ function TournamentCard({
               ))}
             </div>
           </div>
+        )}
+
+        {/* Link to tournament detail */}
+        {sede && (t.status === "IN_PROGRESS" || t.status === "FINISHED") && (
+          <Link
+            href={`/torneos/${sede}/${t.slug}`}
+            className="flex items-center justify-between mt-4 p-2.5 rounded-lg bg-[#fafafa] hover:bg-[#f0f0f0] transition-colors text-sm font-medium"
+          >
+            <span>Ver calendario y posiciones</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
         )}
 
         {showCta && venueWhatsapp && (

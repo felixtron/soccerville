@@ -38,8 +38,12 @@ export default async function TournamentDetailPage({
       },
       matches: {
         include: {
-          homeTeam: { select: { name: true } },
-          awayTeam: { select: { name: true } },
+          homeTeam: { select: { id: true, name: true, players: { select: { id: true, name: true, number: true } } } },
+          awayTeam: { select: { id: true, name: true, players: { select: { id: true, name: true, number: true } } } },
+          events: {
+            include: { player: { select: { name: true } } },
+            orderBy: { minute: "asc" },
+          },
         },
         orderBy: [{ matchDay: "asc" }, { createdAt: "asc" }],
       },

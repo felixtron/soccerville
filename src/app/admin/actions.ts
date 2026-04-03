@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
-import { generateRoundRobin, calculateStandings } from "@/lib/fixtures";
+import { generateRoundRobin, calculateStandings, type StandingCalc } from "@/lib/fixtures";
 
 // ─── Helpers ────────────────────────────────────────────────
 
@@ -278,11 +278,11 @@ export async function deleteTeam(id: string) {
 
 // ─── Tournament Teams (enrollment) ─────────────────────────
 
-export async function enrollTeam(tournamentId: string, teamId: string) {
+export async function enrollTeam(tournamentId: string, teamId: string, groupName?: string) {
   await requireAdmin();
 
   await prisma.tournamentTeam.create({
-    data: { tournamentId, teamId },
+    data: { tournamentId, teamId, groupName: groupName || null },
   });
 
   // Update team count, set to FULL if needed
@@ -315,10 +315,10 @@ export async function unenrollTeam(tournamentId: string, teamId: string) {
 export async function generateFixtures(tournamentId: string) {
   await requireAdmin();
 
-  // Get enrolled teams
+  // Get enrolled teams with group info
   const enrolled = await prisma.tournamentTeam.findMany({
     where: { tournamentId },
-    select: { teamId: true },
+    select: { teamId: true, groupName: true },
   });
 
   if (enrolled.length < 2) {
@@ -329,26 +329,41 @@ export async function generateFixtures(tournamentId: string) {
   await prisma.match.deleteMany({ where: { tournamentId } });
   await prisma.standing.deleteMany({ where: { tournamentId } });
 
-  // Generate round-robin
-  const teamIds = enrolled.map((e) => e.teamId);
-  const fixtures = generateRoundRobin(teamIds);
+  // Group teams by groupName (null = single group)
+  const groups = new Map<string | null, string[]>();
+  for (const e of enrolled) {
+    const key = e.groupName;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(e.teamId);
+  }
+
+  // Generate round-robin per group
+  const allFixtures: { matchDay: number; homeTeamId: string; awayTeamId: string; groupName: string | null }[] = [];
+  for (const [groupName, teamIds] of groups) {
+    const fixtures = generateRoundRobin(teamIds);
+    for (const f of fixtures) {
+      allFixtures.push({ ...f, groupName });
+    }
+  }
 
   // Create matches
   await prisma.match.createMany({
-    data: fixtures.map((f) => ({
+    data: allFixtures.map((f) => ({
       tournamentId,
       matchDay: f.matchDay,
       homeTeamId: f.homeTeamId,
       awayTeamId: f.awayTeamId,
-      status: "SCHEDULED",
+      groupName: f.groupName,
+      status: "SCHEDULED" as const,
     })),
   });
 
-  // Create initial standings
+  // Create initial standings per group
   await prisma.standing.createMany({
-    data: teamIds.map((teamId) => ({
+    data: enrolled.map((e) => ({
       tournamentId,
-      teamId,
+      teamId: e.teamId,
+      groupName: e.groupName,
     })),
   });
 
@@ -397,7 +412,7 @@ async function recalculateStandings(tournamentId: string) {
   const [enrolled, matches] = await Promise.all([
     prisma.tournamentTeam.findMany({
       where: { tournamentId },
-      select: { teamId: true },
+      select: { teamId: true, groupName: true },
     }),
     prisma.match.findMany({
       where: { tournamentId },
@@ -406,6 +421,9 @@ async function recalculateStandings(tournamentId: string) {
 
   const teamIds = enrolled.map((e) => e.teamId);
   const standings = calculateStandings(teamIds, matches);
+
+  // Map teamId -> groupName for upserting
+  const teamGroupMap = new Map(enrolled.map((e) => [e.teamId, e.groupName]));
 
   for (const s of standings) {
     await prisma.standing.upsert({
@@ -419,8 +437,92 @@ async function recalculateStandings(tournamentId: string) {
         goalsFor: s.goalsFor,
         goalsAgainst: s.goalsAgainst,
         goalDifference: s.goalDifference,
+        penaltyPoints: s.penaltyPoints,
+        defaultWins: s.defaultWins,
+        defaultLosses: s.defaultLosses,
       },
-      create: { tournamentId, ...s },
+      create: {
+        tournamentId,
+        teamId: s.teamId,
+        groupName: teamGroupMap.get(s.teamId) || null,
+        points: s.points,
+        gamesPlayed: s.gamesPlayed,
+        wins: s.wins,
+        draws: s.draws,
+        losses: s.losses,
+        goalsFor: s.goalsFor,
+        goalsAgainst: s.goalsAgainst,
+        goalDifference: s.goalDifference,
+        penaltyPoints: s.penaltyPoints,
+        defaultWins: s.defaultWins,
+        defaultLosses: s.defaultLosses,
+      },
     });
   }
+}
+
+// ─── Match Events ──────────────────────────────────────────
+
+export async function addMatchEvent(
+  matchId: string,
+  playerId: string,
+  teamId: string,
+  type: string,
+  minute?: number,
+  notes?: string
+) {
+  await requireAdmin();
+
+  await prisma.matchEvent.create({
+    data: {
+      matchId,
+      playerId,
+      teamId,
+      type: type as any,
+      minute: minute ?? null,
+      notes: notes ?? null,
+    },
+  });
+
+  const match = await prisma.match.findUnique({
+    where: { id: matchId },
+    select: { tournamentId: true },
+  });
+  if (match) revalidatePath(`/admin/torneos/${match.tournamentId}`);
+}
+
+export async function removeMatchEvent(eventId: string) {
+  await requireAdmin();
+
+  const event = await prisma.matchEvent.findUnique({
+    where: { id: eventId },
+    include: { match: { select: { tournamentId: true } } },
+  });
+
+  await prisma.matchEvent.delete({ where: { id: eventId } });
+
+  if (event) revalidatePath(`/admin/torneos/${event.match.tournamentId}`);
+}
+
+// ─── Match Schedule ────────────────────────────────────────
+
+export async function updateMatchSchedule(
+  matchId: string,
+  date: string | null,
+  time: string | null,
+  fieldNumber: number | null
+) {
+  await requireAdmin();
+
+  const match = await prisma.match.update({
+    where: { id: matchId },
+    data: {
+      date: date ? new Date(date) : null,
+      time,
+      fieldNumber,
+    },
+    select: { tournamentId: true },
+  });
+
+  revalidatePath(`/admin/torneos/${match.tournamentId}`);
 }
