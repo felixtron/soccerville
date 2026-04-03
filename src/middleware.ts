@@ -8,12 +8,15 @@ export function middleware(req: NextRequest) {
     req.cookies.get("__Secure-authjs.session-token")?.value;
 
   const isAdmin = pathname.startsWith("/admin");
+  const isCaptain = pathname.startsWith("/mi-equipo");
   const isLoginPage = pathname === "/login";
 
-  if (isAdmin && !token) {
+  // Protected routes require auth
+  if ((isAdmin || isCaptain) && !token) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
+  // Already logged in? redirect away from login
   if (isLoginPage && token) {
     return NextResponse.redirect(new URL("/admin/dashboard", req.url));
   }
@@ -22,5 +25,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/login"],
+  matcher: ["/admin/:path*", "/mi-equipo/:path*", "/login"],
 };

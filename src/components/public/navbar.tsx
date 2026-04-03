@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu } from "lucide-react";
+import { Menu, User } from "lucide-react";
 import { LinkButton } from "@/components/ui/link-button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
@@ -45,10 +45,17 @@ export function Navbar() {
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/login"
+            className="ml-2 rounded-full p-2 text-foreground/50 transition-colors hover:bg-black/5 hover:text-foreground"
+            title="Acceso Capitanes"
+          >
+            <User className="h-4.5 w-4.5" />
+          </Link>
           <LinkButton
             href="/torneos/metepec"
             size="sm"
-            className="ml-3 rounded-full px-5 !bg-emerald-600 !text-white hover:!bg-emerald-500 border-0"
+            className="ml-1 rounded-full px-5 !bg-emerald-600 !text-white hover:!bg-emerald-500 border-0"
           >
             Inscribirme
           </LinkButton>
@@ -89,6 +96,14 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-base font-medium text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground"
+              >
+                <User className="h-4 w-4" />
+                Mi Equipo
+              </Link>
               <LinkButton
                 href="/torneos/metepec"
                 onClick={() => setOpen(false)}

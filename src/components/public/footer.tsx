@@ -156,9 +156,17 @@ export function Footer() {
 
         {/* Bottom bar */}
         <div className="mt-12 md:mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-white/30">
-            &copy; {new Date().getFullYear()} Soccerville. Todos los derechos reservados.
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-xs text-white/30">
+              &copy; {new Date().getFullYear()} Soccerville. Todos los derechos reservados.
+            </p>
+            <Link
+              href="/login"
+              className="text-xs text-white/20 hover:text-white/40 transition-colors"
+            >
+              Admin
+            </Link>
+          </div>
           <div className="flex items-center gap-3">
             {socials.map((social) => (
               <Link

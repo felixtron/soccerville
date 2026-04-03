@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -11,6 +12,9 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const mode = searchParams.get("mode");
+  const isAdminMode = mode === "admin";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +32,16 @@ export default function LoginPage() {
     if (result?.error) {
       setError("Credenciales incorrectas");
     } else {
-      router.push("/admin/dashboard");
+      // Fetch session to determine role-based redirect
+      const res = await fetch("/api/auth/session");
+      const session = await res.json();
+      const role = session?.user?.role;
+
+      if (role === "ADMIN" || role === "OPERATOR") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/mi-equipo");
+      }
       router.refresh();
     }
   };
@@ -38,21 +51,25 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <Image
-            src="/images/soccerville-w.svg"
-            alt="Soccerville"
-            width={100}
-            height={100}
-            className="h-20 w-20 object-contain"
-            priority
-          />
+          <Link href="/">
+            <Image
+              src="/images/soccerville-w.svg"
+              alt="Soccerville"
+              width={100}
+              height={100}
+              className="h-20 w-20 object-contain"
+              priority
+            />
+          </Link>
         </div>
 
         <h1 className="font-display text-3xl text-white text-center uppercase tracking-tight mb-2">
-          Panel Admin
+          {isAdminMode ? "Panel Admin" : "Mi Equipo"}
         </h1>
         <p className="text-white/40 text-sm text-center mb-8">
-          Ingresa con tus credenciales
+          {isAdminMode
+            ? "Acceso para administradores"
+            : "Acceso para capitanes de equipo"}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -73,7 +90,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full h-11 rounded-xl bg-white/5 border border-white/10 px-4 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
-              placeholder="admin@soccerville.mx"
+              placeholder={isAdminMode ? "admin@soccerville.mx" : "captain@soccerville.mx"}
             />
           </div>
 
@@ -100,6 +117,19 @@ export default function LoginPage() {
             {loading ? "Entrando..." : "Entrar"}
           </button>
         </form>
+
+        {/* Toggle mode */}
+        <div className="mt-6 text-center">
+          {isAdminMode ? (
+            <Link href="/login" className="text-xs text-white/30 hover:text-white/50 transition-colors">
+              Soy capitan de equipo
+            </Link>
+          ) : (
+            <Link href="/login?mode=admin" className="text-xs text-white/30 hover:text-white/50 transition-colors">
+              Acceso administrador
+            </Link>
+          )}
+        </div>
 
         <p className="text-white/20 text-xs text-center mt-8">
           Soccerville &copy; {new Date().getFullYear()}
