@@ -26,6 +26,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - default
+      - dokploy-network
 
 volumes:
   postgres_data:
+
+networks:
+  dokploy-network:
+    external: true
