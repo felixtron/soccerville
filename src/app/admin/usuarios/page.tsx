@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserCog, Shield, MapPin, Mail, Phone } from "lucide-react";
-import { CreateUserButton, EditUserButton } from "@/components/admin/user-form";
+import { CreateUserButton, EditUserButton, ResetPasswordButton } from "@/components/admin/user-form";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { deleteUser } from "@/app/admin/actions";
 
@@ -104,6 +104,7 @@ export default async function UsuariosAdmin() {
                       })}
                     </p>
                     <EditUserButton venues={venues} user={userData} />
+                    <ResetPasswordButton userId={user.id} userName={user.name} />
                     <DeleteButton
                       label="usuario"
                       onDelete={deleteUser.bind(null, user.id)}

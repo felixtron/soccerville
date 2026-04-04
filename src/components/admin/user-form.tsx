@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,8 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { createUser, updateUser } from "@/app/admin/actions";
+import { createUser, updateUser, resetUserPassword } from "@/app/admin/actions";
+import { PasswordInput } from "@/components/shared/password-input";
 
 type Venue = { id: string; name: string };
 
@@ -145,10 +146,9 @@ function UserFields({
           <Label htmlFor="password">
             Contrasena{!requirePassword && " (dejar vacio para no cambiar)"}
           </Label>
-          <Input
+          <PasswordInput
             id="password"
             name="password"
-            type="password"
             required={requirePassword}
             minLength={6}
             placeholder={requirePassword ? "" : "Sin cambios"}
@@ -190,5 +190,55 @@ function UserFields({
         )}
       </div>
     </div>
+  );
+}
+
+export function ResetPasswordButton({ userId, userName }: { userId: string; userName: string }) {
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const action = resetUserPassword.bind(null, userId);
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="text-muted-foreground hover:text-amber-600"
+        title="Reset contrasena"
+        onClick={() => setOpen(true)}
+      >
+        <KeyRound className="h-4 w-4" />
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reset Contrasena</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Nueva contrasena para <span className="font-medium text-foreground">{userName}</span>
+          </p>
+          <form
+            action={(formData) => {
+              startTransition(async () => {
+                await action(formData);
+                setOpen(false);
+              });
+            }}
+          >
+            <div className="py-4">
+              <PasswordInput name="password" required minLength={6} placeholder="Nueva contrasena" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={pending}>
+                {pending ? "Guardando..." : "Cambiar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

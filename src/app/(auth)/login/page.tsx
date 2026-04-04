@@ -1,10 +1,11 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { PasswordInput } from "@/components/shared/password-input";
 
 export default function LoginPage() {
   return (
@@ -16,7 +17,6 @@ export default function LoginPage() {
 
 function LoginForm() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -24,14 +24,15 @@ function LoginForm() {
   const mode = searchParams.get("mode");
   const isAdminMode = mode === "admin";
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
+    const form = new FormData(e.currentTarget);
     const result = await signIn("credentials", {
       email,
-      password,
+      password: form.get("password") as string,
       redirect: false,
     });
 
@@ -106,14 +107,12 @@ function LoginForm() {
             <label htmlFor="password" className="block text-xs text-white/50 uppercase tracking-wider mb-1.5">
               Contrasena
             </label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              name="password"
               required
-              className="w-full h-11 rounded-xl bg-white/5 border border-white/10 px-4 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
               placeholder="••••••••"
+              dark
             />
           </div>
 

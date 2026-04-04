@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import bcrypt from "bcryptjs";
 import { generateRoundRobin, calculateStandings, type StandingCalc } from "@/lib/fixtures";
+import { sendWelcomeEmail } from "@/lib/email";
 
 // ─── Helpers ────────────────────────────────────────────────
 
@@ -256,14 +257,44 @@ export async function createTeam(formData: FormData) {
     },
   });
 
+  const teamName = formData.get("teamName") as string;
   await prisma.team.create({
     data: {
-      name: formData.get("teamName") as string,
+      name: teamName,
       captainId: captain.id,
     },
   });
 
+  // Send welcome email (non-blocking)
+  sendWelcomeEmail({
+    to: captainEmail,
+    teamName,
+    captainName,
+    email: captainEmail,
+    password,
+  }).catch(() => {}); // Don't fail team creation if email fails
+
   revalidatePath("/admin/equipos");
+}
+
+export async function updateTeamName(teamId: string, formData: FormData) {
+  await requireAdmin();
+  await prisma.team.update({
+    where: { id: teamId },
+    data: { name: formData.get("name") as string },
+  });
+  revalidatePath("/admin/equipos");
+}
+
+export async function resetUserPassword(userId: string, formData: FormData) {
+  await requireAdmin();
+  const password = formData.get("password") as string;
+  const hashed = await bcrypt.hash(password, 12);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashed },
+  });
+  revalidatePath("/admin/usuarios");
 }
 
 export async function deleteTeam(id: string) {

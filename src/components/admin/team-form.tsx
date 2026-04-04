@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,8 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { createTeam } from "@/app/admin/actions";
+import { createTeam, updateTeamName } from "@/app/admin/actions";
+import { PasswordInput } from "@/components/shared/password-input";
 
 export function CreateTeamButton() {
   const [open, setOpen] = useState(false);
@@ -62,7 +63,7 @@ export function CreateTeamButton() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="captainPassword">Contrasena (default: equipo123)</Label>
-                <Input id="captainPassword" name="captainPassword" type="password" defaultValue="equipo123" />
+                <PasswordInput id="captainPassword" name="captainPassword" defaultValue="equipo123" />
               </div>
             </div>
           </div>
@@ -77,5 +78,60 @@ export function CreateTeamButton() {
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+export function EditTeamButton({
+  teamId,
+  currentName,
+}: {
+  teamId: string;
+  currentName: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const action = updateTeamName.bind(null, teamId);
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="text-muted-foreground hover:text-primary"
+        onClick={() => setOpen(true)}
+      >
+        <Pencil className="h-4 w-4" />
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Editar Equipo</DialogTitle>
+          </DialogHeader>
+          <form
+            action={(formData) => {
+              startTransition(async () => {
+                await action(formData);
+                setOpen(false);
+              });
+            }}
+          >
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="editName">Nombre del equipo</Label>
+                <Input id="editName" name="name" required defaultValue={currentName} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={pending}>
+                {pending ? "Guardando..." : "Guardar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

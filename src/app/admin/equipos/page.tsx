@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Trophy, User } from "lucide-react";
-import { CreateTeamButton } from "@/components/admin/team-form";
+import { CreateTeamButton, EditTeamButton } from "@/components/admin/team-form";
 import { DeleteButton } from "@/components/admin/delete-button";
 import { deleteTeam } from "@/app/admin/actions";
 
@@ -73,7 +73,10 @@ export default async function EquiposAdmin() {
                       {(team as any)._count.tournaments} torneos
                     </Badge>
                   </div>
-                  <DeleteButton label="equipo" onDelete={deleteTeam.bind(null, team.id)} />
+                  <div className="flex items-center gap-1">
+                    <EditTeamButton teamId={team.id} currentName={team.name} />
+                    <DeleteButton label="equipo" onDelete={deleteTeam.bind(null, team.id)} />
+                  </div>
                 </div>
               </CardContent>
             </Card>

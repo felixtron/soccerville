@@ -16,6 +16,22 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // For inscription payments, verify team is enrolled in the tournament
+  if (type === "INSCRIPTION" && metadata?.tournamentId && metadata?.teamId) {
+    const enrollment = await prisma.tournamentTeam.findFirst({
+      where: {
+        tournamentId: metadata.tournamentId,
+        teamId: metadata.teamId,
+      },
+    });
+    if (!enrollment) {
+      return NextResponse.json(
+        { error: "El equipo debe estar inscrito en el torneo para pagar" },
+        { status: 400 }
+      );
+    }
+  }
+
   // Amount in centavos (MXN)
   const amountCents = amount * 100;
   const applicationFee = calculateApplicationFee(amountCents);
