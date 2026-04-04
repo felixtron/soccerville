@@ -95,6 +95,7 @@ export async function POST(req: NextRequest) {
       bookingId: metadata?.bookingId || null,
       spaceId: metadata?.spaceId || null,
       description,
+      metadata: metadata || null,
     },
   });
 
