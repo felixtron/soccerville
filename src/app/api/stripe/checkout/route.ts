@@ -61,8 +61,12 @@ export async function POST(req: NextRequest) {
       },
     },
     payment_method_types: ["card"],
-    success_url: `${origin}/pago/exitoso?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/pago/cancelado`,
+    success_url: type === "INSCRIPTION"
+      ? `${origin}/pago/exitoso?session_id={CHECKOUT_SESSION_ID}&redirect=/mi-equipo/inscribirse`
+      : `${origin}/pago/exitoso?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: type === "INSCRIPTION"
+      ? `${origin}/mi-equipo/inscribirse`
+      : `${origin}/pago/cancelado`,
     metadata: {
       venueId,
       type,
