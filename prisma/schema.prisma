@@ -150,9 +150,10 @@ model Tournament {
   category        TournamentCategory @default(VARONIL)
   schedule        TournamentSchedule
   maxTeams        Int
-  inscriptionFee  Int
-  refereeFee      Int
-  status          TournamentStatus   @default(OPEN)
+  inscriptionFee      Int
+  refereeFee          Int
+  refereeFeePerMatch  Boolean            @default(true)
+  status              TournamentStatus   @default(OPEN)
   description     String?
   startDate       DateTime?
   endDate         DateTime?
@@ -200,8 +201,9 @@ model TournamentTeam {
   tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   teamId       String
   team         Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  groupName    String?
-  enrolledAt   DateTime   @default(now())
+  groupName       String?
+  inscriptionPaid Boolean    @default(false)
+  enrolledAt      DateTime   @default(now())
 
   @@unique([tournamentId, teamId])
 }

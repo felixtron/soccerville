@@ -42,6 +42,7 @@ export async function createTournament(formData: FormData) {
       maxTeams: parseInt(formData.get("maxTeams") as string),
       inscriptionFee: parseInt(formData.get("inscriptionFee") as string),
       refereeFee: parseInt(formData.get("refereeFee") as string),
+      refereeFeePerMatch: formData.get("refereeFeePerMatch") === "on",
       status: (formData.get("status") as any) || "OPEN",
       startDate: formData.get("startDate")
         ? new Date(formData.get("startDate") as string)
@@ -66,6 +67,7 @@ export async function updateTournament(id: string, formData: FormData) {
       maxTeams: parseInt(formData.get("maxTeams") as string),
       inscriptionFee: parseInt(formData.get("inscriptionFee") as string),
       refereeFee: parseInt(formData.get("refereeFee") as string),
+      refereeFeePerMatch: formData.get("refereeFeePerMatch") === "on",
       status: formData.get("status") as any,
       startDate: formData.get("startDate")
         ? new Date(formData.get("startDate") as string)

@@ -26,6 +26,7 @@ type TournamentData = {
   maxTeams: number;
   inscriptionFee: number;
   refereeFee: number;
+  refereeFeePerMatch: boolean;
   status: string;
   startDate: string | null;
 };
@@ -206,6 +207,18 @@ function TournamentFields({
           <Label htmlFor="refereeFee">Arbitraje $</Label>
           <Input id="refereeFee" name="refereeFee" type="number" required defaultValue={defaults?.refereeFee ?? 200} />
         </div>
+      </div>
+      <div className="flex items-center gap-3 p-3 rounded-lg bg-[#fafafa]">
+        <input
+          id="refereeFeePerMatch"
+          name="refereeFeePerMatch"
+          type="checkbox"
+          defaultChecked={defaults?.refereeFeePerMatch ?? true}
+          className="h-4 w-4 rounded border-input"
+        />
+        <Label htmlFor="refereeFeePerMatch" className="text-sm font-normal cursor-pointer">
+          Arbitraje se paga <strong>por partido en efectivo</strong> el dia del juego
+        </Label>
       </div>
       <div className="grid gap-2">
         <Label htmlFor="startDate">Fecha de inicio</Label>

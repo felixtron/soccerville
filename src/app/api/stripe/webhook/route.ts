@@ -83,4 +83,15 @@ async function handleCheckoutComplete(session: any) {
       data: { status: "CONFIRMED", paymentStatus: "COMPLETED" },
     });
   }
+
+  // Mark inscription as paid
+  if (payment.type === "INSCRIPTION" && payment.tournamentId && payment.metadata) {
+    const meta = payment.metadata as any;
+    if (meta.teamId) {
+      await prisma.tournamentTeam.updateMany({
+        where: { tournamentId: payment.tournamentId, teamId: meta.teamId },
+        data: { inscriptionPaid: true },
+      });
+    }
+  }
 }

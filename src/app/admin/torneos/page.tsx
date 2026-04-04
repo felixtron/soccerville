@@ -54,6 +54,7 @@ export default async function TorneosAdmin() {
             maxTeams: t.maxTeams,
             inscriptionFee: t.inscriptionFee,
             refereeFee: t.refereeFee,
+            refereeFeePerMatch: t.refereeFeePerMatch,
             status: t.status,
             startDate: t.startDate ? t.startDate.toISOString().split("T")[0] : null,
           };

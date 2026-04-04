@@ -199,6 +199,7 @@ type TournamentWithCounts = {
   maxTeams: number;
   inscriptionFee: number;
   refereeFee: number;
+  refereeFeePerMatch: boolean;
   status: string;
   _count: { teams: number };
   standings: {
@@ -255,6 +256,9 @@ function TournamentCard({
           <div className="flex items-center gap-2 text-muted-foreground">
             <Gavel className="h-4 w-4" />
             Arbitraje: ${t.refereeFee.toLocaleString()}
+            {t.refereeFeePerMatch && (
+              <span className="text-xs text-amber-600 font-medium">/partido · efectivo</span>
+            )}
           </div>
         </div>
 

@@ -466,6 +466,20 @@ export default async function MiEquipoPage() {
               </Card>
             )}
 
+            {/* Inscribirse CTA */}
+            <Link
+              href="/mi-equipo/inscribirse"
+              className="flex items-center justify-between p-4 rounded-xl bg-emerald-600 text-white shadow-sm hover:bg-emerald-500 transition-colors"
+            >
+              <div>
+                <p className="text-sm font-bold">Inscribirse a un Torneo</p>
+                <p className="text-xs text-white/70">
+                  Ver torneos disponibles y pagar inscripcion
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-white/70" />
+            </Link>
+
             {/* Links to public tournament pages */}
             {team.tournaments
               .filter((tt) => tt.tournament.status === "IN_PROGRESS")
