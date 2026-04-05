@@ -61,6 +61,9 @@ const MATCH_TIMES = ["20:00", "21:00", "22:00"];
 async function main() {
   console.log("Cleaning database...");
 
+  await prisma.notificationRead.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.schoolEnrollment.deleteMany();
   await prisma.matchEvent.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.standing.deleteMany();
@@ -673,24 +676,67 @@ async function main() {
 
   // ─── Programs ──────────────────────────────────────────
 
-  await prisma.program.createMany({
-    data: [
-      {
-        name: "Red Diablos",
-        type: "SCHOOL",
-        venueId: metepec.id,
-        schedule: "Lunes a Jueves, 4:00 PM - 6:00 PM",
-        description: "Escuela de futbol con formacion integral para ninos y jovenes.",
-      },
-      {
-        name: "Sirenas FC",
-        type: "FIXED_TEAM",
-        venueId: calimaya.id,
-        schedule: "Martes y Jueves, 4:00 PM - 6:00 PM",
-        description: "Equipo femenino con entrenamientos regulares y preparacion para torneos.",
-      },
-    ],
+  console.log("Creating programs and school students...");
+
+  const redDiablos = await prisma.program.create({
+    data: {
+      name: "Red Diablos",
+      type: "SCHOOL",
+      venueId: metepec.id,
+      schedule: "Lunes a Jueves, 4:00 PM - 6:00 PM",
+      monthlyFee: 500,
+      maxStudents: 30,
+      description: "Escuela de futbol con formacion integral para ninos y jovenes.",
+    },
   });
+
+  const sirenas = await prisma.program.create({
+    data: {
+      name: "Sirenas FC",
+      type: "FIXED_TEAM",
+      venueId: calimaya.id,
+      schedule: "Martes y Jueves, 4:00 PM - 6:00 PM",
+      monthlyFee: 450,
+      maxStudents: 20,
+      description: "Equipo femenino con entrenamientos regulares y preparacion para torneos.",
+    },
+  });
+
+  // ─── School students (demo) ────────────────────────────
+
+  const studentPassword = await bcrypt.hash("escuela123", 12);
+
+  const students = [
+    { name: "Santiago Lopez", age: 10, parent: "Maria Lopez", parentPhone: "722 111 2233", program: redDiablos },
+    { name: "Valentina Torres", age: 8, parent: "Roberto Torres", parentPhone: "722 222 3344", program: redDiablos },
+    { name: "Mateo Garcia", age: 12, parent: "Ana Garcia", parentPhone: "722 333 4455", program: redDiablos },
+    { name: "Sofia Martinez", age: 14, parent: "Carlos Martinez", parentPhone: "722 444 5566", program: sirenas },
+    { name: "Isabella Hernandez", age: 13, parent: "Laura Hernandez", parentPhone: "722 555 6677", program: sirenas },
+  ];
+
+  for (const s of students) {
+    const emailSlug = s.name.toLowerCase().replace(/\s+/g, ".").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const student = await prisma.user.create({
+      data: {
+        name: s.name,
+        email: `${emailSlug}@soccerville.mx`,
+        phone: s.parentPhone,
+        password: studentPassword,
+        role: "STUDENT",
+      },
+    });
+
+    await prisma.schoolEnrollment.create({
+      data: {
+        programId: s.program.id,
+        studentId: student.id,
+        studentName: s.name,
+        studentAge: s.age,
+        parentName: s.parent,
+        parentPhone: s.parentPhone,
+      },
+    });
+  }
 
   // ─── Commercial Spaces ─────────────────────────────────
 
