@@ -359,7 +359,7 @@ export function MatchResultRow({
       {showEvents && (
         <tr className="border-b bg-[#fafafa]">
           <td colSpan={5} className="p-3">
-            <MatchEventsEditor match={match} />
+            <MatchEventsEditor match={match} onClose={() => setShowEvents(false)} />
           </td>
         </tr>
       )}
@@ -369,6 +369,7 @@ export function MatchResultRow({
 
 function MatchEventsEditor({
   match,
+  onClose,
 }: {
   match: {
     id: string;
@@ -376,6 +377,7 @@ function MatchEventsEditor({
     awayTeam: { id: string; name: string; players: MatchPlayer[] };
     events: MatchEventData[];
   };
+  onClose: () => void;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -394,8 +396,19 @@ function MatchEventsEditor({
 
   return (
     <div className="space-y-3">
-      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        Eventos del partido
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Eventos del partido
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={onClose}
+        >
+          <Check className="h-3 w-3 mr-1" />
+          Listo
+        </Button>
       </div>
 
       {/* Existing events */}
@@ -467,7 +480,7 @@ function MatchEventsEditor({
             <option value="SANCTION">⛔ Sancion</option>
           </select>
           <Input name="minute" type="number" min="0" max="120" placeholder="Min" className="w-16 h-7 text-xs" />
-          <Button type="submit" size="sm" disabled={pending} className="h-7 text-xs">
+          <Button type="submit" size="sm" disabled={pending} className="h-7 text-xs bg-emerald-600 hover:bg-emerald-500">
             {pending ? "..." : "+ Agregar"}
           </Button>
         </form>
