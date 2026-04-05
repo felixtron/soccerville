@@ -13,6 +13,7 @@ export default async function AdminLayout({
 
   if (!session?.user) redirect("/login?mode=admin");
   if (role === "CAPTAIN") redirect("/mi-equipo");
+  if (role === "STUDENT") redirect("/mi-escuela");
 
   return (
     <SessionProvider>

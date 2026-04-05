@@ -41,6 +41,7 @@ const roleLabels: Record<string, { label: string; class: string; icon: string }>
   ADMIN: { label: "Admin", class: "bg-red-100 text-red-700", icon: "A" },
   OPERATOR: { label: "Operador", class: "bg-blue-100 text-blue-700", icon: "O" },
   CAPTAIN: { label: "Capitan", class: "bg-emerald-100 text-emerald-700", icon: "C" },
+  STUDENT: { label: "Alumno", class: "bg-amber-100 text-amber-700", icon: "E" },
 };
 
 export function UsersTable({
@@ -121,6 +122,7 @@ export function UsersTable({
           <option value="ADMIN">Admin</option>
           <option value="OPERATOR">Operador</option>
           <option value="CAPTAIN">Capitan</option>
+          <option value="STUDENT">Alumno</option>
         </select>
 
         {/* Venue filter */}

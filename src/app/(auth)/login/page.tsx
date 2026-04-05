@@ -48,6 +48,8 @@ function LoginForm() {
 
       if (role === "ADMIN" || role === "OPERATOR") {
         router.push("/admin/dashboard");
+      } else if (role === "STUDENT") {
+        router.push("/mi-escuela");
       } else {
         router.push("/mi-equipo");
       }

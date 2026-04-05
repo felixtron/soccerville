@@ -561,6 +561,9 @@ export async function sendNotification(formData: FormData) {
   if (audience === "TEAM" && formData.get("teamId")) {
     data.teamId = formData.get("teamId") as string;
   }
+  if (audience === "SCHOOL" && formData.get("programId")) {
+    data.programId = formData.get("programId") as string;
+  }
 
   await prisma.notification.create({ data });
   revalidatePath("/admin/notificaciones");
@@ -591,6 +594,95 @@ export async function updateMatchSchedule(
   });
 
   revalidatePath(`/admin/torneos/${match.tournamentId}`);
+}
+
+// ─── School Enrollment ─────────────────────────────────────
+
+export async function enrollStudent(formData: FormData) {
+  await requireAdmin();
+
+  const programId = formData.get("programId") as string;
+  const studentName = formData.get("studentName") as string;
+  const email = formData.get("email") as string;
+  const phone = (formData.get("phone") as string) || null;
+  const parentName = (formData.get("parentName") as string) || null;
+  const parentPhone = (formData.get("parentPhone") as string) || null;
+  const studentAge = formData.get("studentAge") ? parseInt(formData.get("studentAge") as string) : null;
+  const password = (formData.get("password") as string) || "escuela123";
+  const hashed = await bcrypt.hash(password, 12);
+
+  // Create user account
+  const student = await prisma.user.create({
+    data: {
+      name: studentName,
+      email,
+      phone,
+      password: hashed,
+      role: "STUDENT",
+    },
+  });
+
+  // Create enrollment
+  await prisma.schoolEnrollment.create({
+    data: {
+      programId,
+      studentId: student.id,
+      studentName,
+      studentAge,
+      parentName,
+      parentPhone,
+    },
+  });
+
+  // Send welcome email
+  const program = await prisma.program.findUnique({
+    where: { id: programId },
+    select: { name: true },
+  });
+
+  sendWelcomeEmail({
+    to: email,
+    teamName: program?.name ?? "Escuela de Futbol",
+    captainName: studentName,
+    email,
+    password,
+  }).catch(() => {});
+
+  revalidatePath("/admin/escuela");
+}
+
+export async function updateEnrollmentStatus(enrollmentId: string, status: string) {
+  await requireAdmin();
+
+  await prisma.schoolEnrollment.update({
+    where: { id: enrollmentId },
+    data: { status: status as any },
+  });
+
+  revalidatePath("/admin/escuela");
+}
+
+export async function removeEnrollment(enrollmentId: string) {
+  await requireAdmin();
+
+  const enrollment = await prisma.schoolEnrollment.findUnique({
+    where: { id: enrollmentId },
+    select: { studentId: true },
+  });
+
+  await prisma.schoolEnrollment.delete({ where: { id: enrollmentId } });
+
+  // Delete user if no other enrollments
+  if (enrollment) {
+    const other = await prisma.schoolEnrollment.count({
+      where: { studentId: enrollment.studentId },
+    });
+    if (other === 0) {
+      await prisma.user.delete({ where: { id: enrollment.studentId } }).catch(() => {});
+    }
+  }
+
+  revalidatePath("/admin/escuela");
 }
 
 // ─── Payments ───────────────────────────────────────────────

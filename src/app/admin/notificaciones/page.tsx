@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Megaphone, Users, Trophy, MapPin } from "lucide-react";
+import { Bell, Megaphone, Users, Trophy, MapPin, GraduationCap } from "lucide-react";
 import { NotificationForm } from "@/components/admin/notification-form";
 import { DeleteNotificationButton } from "@/components/admin/delete-notification-button";
 
@@ -12,6 +12,7 @@ const audienceLabels: Record<string, { label: string; class: string; icon: typeo
   VENUE: { label: "Sede", class: "bg-blue-500/10 text-blue-600", icon: MapPin },
   TOURNAMENT: { label: "Torneo", class: "bg-amber-500/10 text-amber-700", icon: Trophy },
   TEAM: { label: "Equipo", class: "bg-emerald-500/10 text-emerald-700", icon: Users },
+  SCHOOL: { label: "Escuela", class: "bg-orange-500/10 text-orange-600", icon: GraduationCap },
 };
 
 function formatDate(date: Date): string {
@@ -25,13 +26,14 @@ function formatDate(date: Date): string {
 }
 
 export default async function NotificacionesPage() {
-  const [notifications, venues, tournaments, teams] = await Promise.all([
+  const [notifications, venues, tournaments, teams, programs] = await Promise.all([
     prisma.notification.findMany({
       include: {
         author: { select: { name: true } },
         venue: { select: { name: true } },
         tournament: { select: { name: true } },
         team: { select: { name: true } },
+        program: { select: { name: true } },
         _count: { select: { reads: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -43,6 +45,7 @@ export default async function NotificacionesPage() {
       orderBy: { name: "asc" },
     }),
     prisma.team.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.program.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   return (
@@ -56,7 +59,7 @@ export default async function NotificacionesPage() {
             Envia avisos y noticias a capitanes de equipo
           </p>
         </div>
-        <NotificationForm venues={venues} tournaments={tournaments} teams={teams} />
+        <NotificationForm venues={venues} tournaments={tournaments} teams={teams} programs={programs} />
       </div>
 
       {notifications.length === 0 ? (
@@ -81,6 +84,8 @@ export default async function NotificacionesPage() {
                 ? n.tournament?.name
                 : n.audience === "TEAM"
                 ? n.team?.name
+                : n.audience === "SCHOOL"
+                ? n.program?.name
                 : null;
 
             return (

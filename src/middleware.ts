@@ -9,10 +9,10 @@ export function middleware(req: NextRequest) {
 
   const isAdmin = pathname.startsWith("/admin");
   const isCaptain = pathname.startsWith("/mi-equipo");
-  const isLoginPage = pathname === "/login";
+  const isStudent = pathname.startsWith("/mi-escuela");
 
   // Protected routes require auth
-  if ((isAdmin || isCaptain) && !token) {
+  if ((isAdmin || isCaptain || isStudent) && !token) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
@@ -20,5 +20,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/mi-equipo/:path*"],
+  matcher: ["/admin/:path*", "/mi-equipo/:path*", "/mi-escuela/:path*"],
 };

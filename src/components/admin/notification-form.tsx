@@ -19,9 +19,10 @@ type Props = {
   venues: { id: string; name: string }[];
   tournaments: { id: string; name: string }[];
   teams: { id: string; name: string }[];
+  programs: { id: string; name: string }[];
 };
 
-export function NotificationForm({ venues, tournaments, teams }: Props) {
+export function NotificationForm({ venues, tournaments, teams, programs }: Props) {
   const [open, setOpen] = useState(false);
   const [audience, setAudience] = useState("ALL");
   const [pending, startTransition] = useTransition();
@@ -80,6 +81,7 @@ export function NotificationForm({ venues, tournaments, teams }: Props) {
                 { value: "VENUE", label: "Por sede" },
                 { value: "TOURNAMENT", label: "Por torneo" },
                 { value: "TEAM", label: "Equipo especifico" },
+                { value: "SCHOOL", label: "Escuela / Programa" },
               ].map((opt) => (
                 <button
                   key={opt.value}
@@ -155,6 +157,27 @@ export function NotificationForm({ venues, tournaments, teams }: Props) {
                 {teams.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {audience === "SCHOOL" && (
+            <div>
+              <Label htmlFor="programId" className="text-xs uppercase tracking-wider">
+                Programa
+              </Label>
+              <select
+                id="programId"
+                name="programId"
+                required
+                className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Seleccionar programa...</option>
+                {programs.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
                   </option>
                 ))}
               </select>

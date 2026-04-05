@@ -11,6 +11,7 @@ enum UserRole {
   ADMIN
   OPERATOR
   CAPTAIN
+  STUDENT
 }
 
 enum TournamentStatus {
@@ -55,6 +56,7 @@ enum PaymentType {
   FOODTRUCK
   ADVERTISING
   EVENT
+  SCHOOL_FEE
 }
 
 enum SpaceType {
@@ -73,6 +75,7 @@ enum NotificationAudience {
   VENUE
   TOURNAMENT
   TEAM
+  SCHOOL
 }
 
 enum ProgramType {
@@ -106,6 +109,7 @@ model User {
   venueId           String?
   venue             Venue?             @relation(fields: [venueId], references: [id])
   team              Team?
+  enrollments       SchoolEnrollment[]
   payments          Payment[]
   notifications     Notification[]
   notificationReads NotificationRead[]
@@ -289,16 +293,45 @@ model Booking {
 }
 
 model Program {
-  id          String      @id @default(cuid())
+  id          String             @id @default(cuid())
   name        String
   type        ProgramType
   venueId     String
-  venue       Venue       @relation(fields: [venueId], references: [id])
+  venue       Venue              @relation(fields: [venueId], references: [id])
   schedule    String
+  monthlyFee  Int                @default(500)
+  maxStudents Int                @default(30)
   description String?
   imageUrl    String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  enrollments   SchoolEnrollment[]
+  notifications Notification[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model SchoolEnrollment {
+  id          String           @id @default(cuid())
+  programId   String
+  program     Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status      EnrollmentStatus @default(ACTIVE)
+  studentName String
+  studentAge  Int?
+  parentName  String?
+  parentPhone String?
+  notes       String?
+  enrolledAt  DateTime         @default(now())
+
+  @@unique([programId, studentId])
+  @@index([programId])
+  @@index([studentId])
 }
 
 model CommercialSpace {
@@ -355,6 +388,8 @@ model Notification {
   tournament   Tournament?          @relation(fields: [tournamentId], references: [id])
   teamId       String?
   team         Team?                @relation(fields: [teamId], references: [id])
+  programId    String?
+  program      Program?             @relation(fields: [programId], references: [id])
   authorId     String
   author       User                 @relation(fields: [authorId], references: [id])
   reads        NotificationRead[]
@@ -364,6 +399,7 @@ model Notification {
   @@index([venueId])
   @@index([tournamentId])
   @@index([teamId])
+  @@index([programId])
 }
 
 model NotificationRead {
