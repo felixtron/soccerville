@@ -335,20 +335,22 @@ model SchoolEnrollment {
 }
 
 model CommercialSpace {
-  id             String      @id @default(cuid())
-  venueId        String
-  venue          Venue       @relation(fields: [venueId], references: [id])
-  type           SpaceType
-  label          String?
-  price          Int
-  contractMonths Int         @default(6)
-  status         SpaceStatus @default(AVAILABLE)
-  tenantName     String?
-  tenantPhone    String?
-  tenantEmail    String?
-  description    String?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id                   String      @id @default(cuid())
+  venueId              String
+  venue                Venue       @relation(fields: [venueId], references: [id])
+  type                 SpaceType
+  label                String?
+  price                Int
+  contractMonths       Int         @default(6)
+  status               SpaceStatus @default(AVAILABLE)
+  tenantName           String?
+  tenantPhone          String?
+  tenantEmail          String?
+  stripeSubscriptionId String?
+  stripePriceId        String?
+  description          String?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 }
 
 model Payment {

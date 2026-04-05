@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Store, Megaphone, PartyPopper, DollarSign, MapPin, User } from "lucide-react";
+import { Store, Megaphone, PartyPopper, DollarSign, MapPin, User, CreditCard, RefreshCw } from "lucide-react";
 import { CreateSpaceButton, EditSpaceButton } from "@/components/admin/space-form";
 import { DeleteButton } from "@/components/admin/delete-button";
+import { SubscriptionButton } from "@/components/admin/space-subscription";
 import { deleteSpace } from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
@@ -109,15 +110,33 @@ export default async function EspaciosAdmin() {
                 </div>
                 {space.tenantName && (
                   <div className="flex items-center gap-2 mt-3 text-sm p-2.5 rounded-lg bg-[#fafafa]">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <div>
+                    <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
                       <p className="font-medium">{space.tenantName}</p>
                       {space.tenantPhone && (
-                        <p className="text-xs text-muted-foreground">
-                          {space.tenantPhone}
-                        </p>
+                        <p className="text-xs text-muted-foreground">{space.tenantPhone}</p>
                       )}
                     </div>
+                  </div>
+                )}
+                {/* Subscription */}
+                {space.status === "RENTED" && (
+                  <div className="mt-3">
+                    {space.stripeSubscriptionId ? (
+                      <div className="flex items-center gap-2 text-xs p-2 rounded-lg bg-emerald-50 text-emerald-700">
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        <span className="font-medium">Suscripcion activa</span>
+                        <span className="text-emerald-600/60 ml-auto text-[10px] font-mono truncate max-w-[120px]">
+                          {space.stripeSubscriptionId}
+                        </span>
+                      </div>
+                    ) : space.tenantEmail && space.venue.stripeOnboarded ? (
+                      <SubscriptionButton spaceId={space.id} label={space.label ?? typeLabels[space.type]} price={space.price} />
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">
+                        {!space.tenantEmail ? "Agrega email del inquilino para suscripcion" : "Conecta Stripe en la sede"}
+                      </p>
+                    )}
                   </div>
                 )}
               </CardContent>

@@ -24,8 +24,16 @@ export async function POST(req: NextRequest) {
 
   switch (event.type) {
     case "checkout.session.completed": {
-      const session = event.data.object;
-      await handleCheckoutComplete(session);
+      const session = event.data.object as any;
+      // Handle subscription checkout for commercial spaces
+      if (session.mode === "subscription" && session.metadata?.spaceId) {
+        await prisma.commercialSpace.update({
+          where: { id: session.metadata.spaceId },
+          data: { stripeSubscriptionId: session.subscription },
+        });
+      } else {
+        await handleCheckoutComplete(session);
+      }
       break;
     }
 
@@ -42,6 +50,31 @@ export async function POST(req: NextRequest) {
         where: { stripeSessionId: session.id },
         data: { status: "FAILED" },
       });
+      break;
+    }
+
+    case "customer.subscription.created":
+    case "customer.subscription.updated": {
+      const subscription = event.data.object as any;
+      const spaceId = subscription.metadata?.spaceId;
+      if (spaceId) {
+        await prisma.commercialSpace.update({
+          where: { id: spaceId },
+          data: { stripeSubscriptionId: subscription.id },
+        });
+      }
+      break;
+    }
+
+    case "customer.subscription.deleted": {
+      const subscription = event.data.object as any;
+      const spaceId = subscription.metadata?.spaceId;
+      if (spaceId) {
+        await prisma.commercialSpace.update({
+          where: { id: spaceId },
+          data: { stripeSubscriptionId: null },
+        });
+      }
       break;
     }
 
