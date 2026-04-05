@@ -16,14 +16,9 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Already logged in? redirect away from login
-  if (isLoginPage && token) {
-    return NextResponse.redirect(new URL("/admin/dashboard", req.url));
-  }
-
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/mi-equipo/:path*", "/login"],
+  matcher: ["/admin/:path*", "/mi-equipo/:path*"],
 };

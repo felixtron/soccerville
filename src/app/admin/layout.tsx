@@ -1,11 +1,19 @@
+import { redirect } from "next/navigation";
 import { SessionProvider } from "next-auth/react";
 import { AdminSidebar } from "@/components/admin/sidebar";
+import { auth } from "@/lib/auth";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth();
+  const role = (session?.user as any)?.role;
+
+  if (!session?.user) redirect("/login?mode=admin");
+  if (role === "CAPTAIN") redirect("/mi-equipo");
+
   return (
     <SessionProvider>
       <div className="min-h-screen bg-[#f5f5f5]">
