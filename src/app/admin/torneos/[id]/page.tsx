@@ -1,17 +1,16 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, MapPin, Calendar, Trophy, Zap, CheckCircle, Clock } from "lucide-react";
+import { ArrowLeft, Users, MapPin, Calendar, Trophy, CheckCircle } from "lucide-react";
 import {
   GenerateFixturesButton,
   EnrollTeamButton,
   UnenrollTeamButton,
-  MatchResultRow,
   StandingsTable,
 } from "@/components/admin/tournament-detail";
-import { MatchMap } from "@/components/admin/match-map";
+import { TournamentDashboard } from "@/components/admin/tournament-dashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -68,47 +67,34 @@ export default async function TournamentDetailPage({
 
   const status = statusMap[tournament.status] ?? statusMap.OPEN;
   const hasMatches = tournament.matches.length > 0;
-  const matchDays = [...new Set(tournament.matches.map((m) => m.matchDay))].sort((a, b) => a - b);
   const playedCount = tournament.matches.filter((m) => m.status === "PLAYED" || m.status === "DEFAULTED").length;
   const totalMatches = tournament.matches.length;
 
-  // Workflow steps
+  // Workflow
   const steps = [
-    {
-      label: "Inscribir equipos",
-      done: tournament.teams.length >= 2,
-      active: tournament.status === "OPEN" || tournament.status === "FULL",
-      detail: `${tournament.teams.length}/${tournament.maxTeams} equipos`,
-    },
-    {
-      label: "Generar fixtures",
-      done: hasMatches,
-      active: !hasMatches && tournament.teams.length >= 2,
-      detail: hasMatches ? `${totalMatches} partidos` : "Pendiente",
-    },
-    {
-      label: "Registrar resultados",
-      done: tournament.status === "FINISHED",
-      active: tournament.status === "IN_PROGRESS",
-      detail: hasMatches ? `${playedCount}/${totalMatches} jugados` : "—",
-    },
-    {
-      label: "Torneo finalizado",
-      done: tournament.status === "FINISHED",
-      active: false,
-      detail: tournament.status === "FINISHED" ? "Completado" : "—",
-    },
+    { label: "Equipos", done: tournament.teams.length >= 2, active: tournament.status === "OPEN" || tournament.status === "FULL", detail: `${tournament.teams.length}/${tournament.maxTeams}` },
+    { label: "Fixtures", done: hasMatches, active: !hasMatches && tournament.teams.length >= 2, detail: hasMatches ? `${totalMatches}` : "—" },
+    { label: "Resultados", done: tournament.status === "FINISHED", active: tournament.status === "IN_PROGRESS", detail: hasMatches ? `${playedCount}/${totalMatches}` : "—" },
+    { label: "Fin", done: tournament.status === "FINISHED", active: false, detail: "" },
   ];
 
-  // Match map data
-  const matchMapData = tournament.matches.map((m) => ({
+  // Serialize matches for client component
+  const matchesData = tournament.matches.map((m) => ({
     id: m.id,
     matchDay: m.matchDay,
-    homeTeam: m.homeTeam.name,
-    awayTeam: m.awayTeam.name,
+    homeTeam: { id: m.homeTeam.id, name: m.homeTeam.name, players: m.homeTeam.players },
+    awayTeam: { id: m.awayTeam.id, name: m.awayTeam.name, players: m.awayTeam.players },
     homeScore: m.homeScore,
     awayScore: m.awayScore,
     status: m.status,
+    events: m.events.map((e) => ({
+      id: e.id,
+      type: e.type,
+      minute: e.minute,
+      playerId: e.playerId,
+      teamId: e.teamId,
+      player: { name: e.player.name },
+    })),
   }));
 
   return (
@@ -121,22 +107,18 @@ export default async function TournamentDetailPage({
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="font-display text-3xl md:text-4xl uppercase tracking-tight">
+              <h1 className="font-display text-2xl md:text-3xl uppercase tracking-tight">
                 {tournament.name}
               </h1>
               <Badge className={status.class}>{status.label}</Badge>
             </div>
-            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
+                <MapPin className="h-3.5 w-3.5" />
                 {tournament.venue.name.replace("Soccerville ", "")}
               </span>
-              <Badge variant="outline">{tournament.category}</Badge>
-              <Badge variant="outline">{tournament.schedule}</Badge>
-              <span className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                {tournament.teams.length}/{tournament.maxTeams}
-              </span>
+              <Badge variant="outline" className="text-[10px]">{tournament.category}</Badge>
+              <Badge variant="outline" className="text-[10px]">{tournament.schedule}</Badge>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -148,156 +130,52 @@ export default async function TournamentDetailPage({
         </div>
       </div>
 
-      {/* Workflow progress */}
-      <Card className="border-0 shadow-sm mb-6">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-1">
-            {steps.map((step, i) => (
-              <div key={i} className="flex items-center flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold ${
-                    step.done ? "bg-emerald-500 text-white" :
-                    step.active ? "bg-blue-500 text-white animate-pulse" :
-                    "bg-gray-100 text-gray-400"
-                  }`}>
-                    {step.done ? <CheckCircle className="h-4 w-4" /> : i + 1}
-                  </div>
-                  <div className="min-w-0 hidden sm:block">
-                    <p className={`text-xs font-medium truncate ${step.done ? "text-emerald-700" : step.active ? "text-blue-700" : "text-gray-400"}`}>
-                      {step.label}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground truncate">{step.detail}</p>
-                  </div>
-                </div>
-                {i < steps.length - 1 && (
-                  <div className={`h-0.5 w-4 mx-1 shrink-0 ${step.done ? "bg-emerald-300" : "bg-gray-200"}`} />
-                )}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Match map (visual bracket) */}
-      {hasMatches && (
-        <Card className="border-0 shadow-sm mb-6">
-          <CardHeader className="pb-3">
-            <CardTitle className="font-display text-lg uppercase tracking-tight flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-blue-500" />
-              Mapa de Partidos
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <MatchMap matches={matchMapData} totalDays={matchDays.length} />
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left: Teams + Standings */}
-        <div className="space-y-6">
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="font-display text-lg uppercase tracking-tight">
-                Equipos ({tournament.teams.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {tournament.teams.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  No hay equipos inscritos aun
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {tournament.teams.map((tt, i) => (
-                    <div key={tt.id} className="flex items-center justify-between p-2.5 rounded-lg bg-[#fafafa]">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
-                        <div>
-                          <p className="text-sm font-medium">{tt.team.name}</p>
-                          <p className="text-xs text-muted-foreground">Cap: {tt.team.captain.name}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {tt.inscriptionPaid && <Badge className="bg-emerald-100 text-emerald-700 text-[9px]">Pagado</Badge>}
-                        {!hasMatches && <UnenrollTeamButton tournamentId={tournament.id} teamId={tt.teamId} />}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {tournament.standings.length > 0 && (
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-3">
-                <CardTitle className="font-display text-lg uppercase tracking-tight flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-amber-500" />
-                  Posiciones
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <StandingsTable standings={tournament.standings} />
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Right: Matches by day */}
-        <div className="lg:col-span-2">
-          {hasMatches ? (
-            <div className="space-y-4">
-              {matchDays.map((day) => {
-                const dayMatches = tournament.matches.filter((m) => m.matchDay === day);
-                const played = dayMatches.filter((m) => m.status === "PLAYED" || m.status === "DEFAULTED").length;
-                return (
-                  <Card key={day} className="border-0 shadow-sm">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="font-display text-base uppercase tracking-tight flex items-center gap-2">
-                          <span className="h-6 w-6 rounded-full bg-foreground text-background text-xs flex items-center justify-center font-bold">
-                            {day}
-                          </span>
-                          Jornada {day}
-                        </CardTitle>
-                        <div className="flex items-center gap-2">
-                          {played === dayMatches.length ? (
-                            <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Completa</Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">{played}/{dayMatches.length}</span>
-                          )}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <table className="w-full">
-                        <tbody>
-                          {dayMatches.map((match) => (
-                            <MatchResultRow key={match.id} match={match} />
-                          ))}
-                        </tbody>
-                      </table>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+      {/* Compact workflow */}
+      <div className="flex items-center gap-1 mb-6 p-3 rounded-xl bg-white shadow-sm">
+        {steps.map((step, i) => (
+          <div key={i} className="flex items-center flex-1">
+            <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${
+              step.done ? "bg-emerald-500 text-white" :
+              step.active ? "bg-blue-500 text-white animate-pulse" :
+              "bg-gray-100 text-gray-400"
+            }`}>
+              {step.done ? <CheckCircle className="h-3 w-3" /> : i + 1}
             </div>
-          ) : (
-            <Card className="border-0 shadow-sm">
-              <CardContent className="py-16 text-center">
-                <Calendar className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
-                <p className="text-muted-foreground">No hay partidos generados</p>
-                <p className="text-sm text-muted-foreground/60 mt-1">
-                  {tournament.teams.length < 2
-                    ? "Inscribe al menos 2 equipos para generar fixtures"
-                    : "Click en 'Generar Fixtures' para crear el calendario automaticamente"}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+            <div className="ml-1.5 min-w-0 hidden md:block">
+              <p className={`text-[10px] font-medium leading-tight ${step.done ? "text-emerald-700" : step.active ? "text-blue-700" : "text-gray-400"}`}>
+                {step.label}
+              </p>
+              {step.detail && <p className="text-[9px] text-muted-foreground">{step.detail}</p>}
+            </div>
+            {i < steps.length - 1 && <div className={`h-px flex-1 mx-2 ${step.done ? "bg-emerald-300" : "bg-gray-200"}`} />}
+          </div>
+        ))}
       </div>
+
+      {/* Main content — client component with tabs */}
+      <TournamentDashboard
+        matches={matchesData}
+        teams={tournament.teams.map((tt) => ({
+          id: tt.team.id,
+          name: tt.team.name,
+          captainName: tt.team.captain.name,
+          inscriptionPaid: tt.inscriptionPaid,
+        }))}
+        standings={tournament.standings.map((s) => ({
+          team: s.team,
+          points: s.points,
+          gamesPlayed: s.gamesPlayed,
+          wins: s.wins,
+          draws: s.draws,
+          losses: s.losses,
+          goalsFor: s.goalsFor,
+          goalsAgainst: s.goalsAgainst,
+          goalDifference: s.goalDifference,
+        }))}
+        tournamentId={tournament.id}
+        hasMatches={hasMatches}
+        teamCount={tournament.teams.length}
+      />
     </>
   );
 }
