@@ -90,6 +90,11 @@ export async function markNotificationRead(notificationId: string) {
 export async function updateTeamLogo(logoUrl: string) {
   const teamId = await requireCaptainTeam();
 
+  // Only allow internal upload URLs
+  if (!logoUrl.startsWith("/api/uploads/logos/")) {
+    throw new Error("Invalid logo URL");
+  }
+
   await prisma.team.update({
     where: { id: teamId },
     data: { logoUrl },

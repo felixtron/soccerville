@@ -68,6 +68,9 @@ async function handleCheckoutComplete(session: any) {
 
   if (!payment) return;
 
+  // Idempotency: skip if already processed
+  if (payment.status === "COMPLETED") return;
+
   await prisma.payment.update({
     where: { id: payment.id },
     data: {

@@ -42,25 +42,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "El torneo esta lleno" }, { status: 400 });
   }
 
-  // Check not already enrolled
-  const existing = await prisma.tournamentTeam.findFirst({
-    where: { tournamentId, teamId },
-  });
-  if (existing) {
-    return NextResponse.json({ error: "Ya estas inscrito en este torneo" }, { status: 400 });
-  }
+  // Atomic enrollment with duplicate + capacity check
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Check not already enrolled (inside transaction)
+      const existing = await tx.tournamentTeam.findFirst({
+        where: { tournamentId, teamId },
+      });
+      if (existing) throw new Error("ALREADY_ENROLLED");
 
-  // Enroll
-  await prisma.tournamentTeam.create({
-    data: { tournamentId, teamId },
-  });
+      // Re-check capacity inside transaction
+      const currentCount = await tx.tournamentTeam.count({
+        where: { tournamentId },
+      });
+      if (currentCount >= tournament.maxTeams) throw new Error("TOURNAMENT_FULL");
 
-  // Auto-set FULL if needed
-  if (tournament._count.teams + 1 >= tournament.maxTeams) {
-    await prisma.tournament.update({
-      where: { id: tournamentId },
-      data: { status: "FULL" },
+      await tx.tournamentTeam.create({
+        data: { tournamentId, teamId },
+      });
+
+      // Auto-set FULL if needed
+      if (currentCount + 1 >= tournament.maxTeams) {
+        await tx.tournament.update({
+          where: { id: tournamentId },
+          data: { status: "FULL" },
+        });
+      }
     });
+  } catch (e: any) {
+    if (e.message === "ALREADY_ENROLLED") {
+      return NextResponse.json({ error: "Ya estas inscrito en este torneo" }, { status: 400 });
+    }
+    if (e.message === "TOURNAMENT_FULL") {
+      return NextResponse.json({ error: "El torneo esta lleno" }, { status: 400 });
+    }
+    throw e;
   }
 
   return NextResponse.json({ ok: true });

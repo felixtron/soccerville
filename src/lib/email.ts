@@ -1,5 +1,13 @@
 import nodemailer from "nodemailer";
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: parseInt(process.env.SMTP_PORT || "587"),
@@ -27,6 +35,11 @@ export async function sendWelcomeEmail({
     ? `${process.env.AUTH_URL}/login`
     : "https://soccerville.prosuite.pro/login";
 
+  const safeName = escapeHtml(captainName);
+  const safeTeam = escapeHtml(teamName);
+  const safeEmail = escapeHtml(email);
+  const safePassword = escapeHtml(password);
+
   const html = `
 <!DOCTYPE html>
 <html>
@@ -42,9 +55,9 @@ export async function sendWelcomeEmail({
 
     <!-- Body -->
     <div style="background:#fff;padding:32px 24px;border-radius:0 0 16px 16px">
-      <h2 style="font-size:20px;margin:0 0 8px;color:#0a0a0a">Bienvenido, ${captainName}!</h2>
+      <h2 style="font-size:20px;margin:0 0 8px;color:#0a0a0a">Bienvenido, ${safeName}!</h2>
       <p style="color:#666;font-size:14px;line-height:1.6;margin:0 0 24px">
-        Tu equipo <strong style="color:#0a0a0a">${teamName}</strong> ha sido registrado en Soccerville.
+        Tu equipo <strong style="color:#0a0a0a">${safeTeam}</strong> ha sido registrado en Soccerville.
         Ahora puedes acceder al portal de capitan para ver tu calendario, posiciones y gestionar tu plantilla.
       </p>
 
@@ -54,11 +67,11 @@ export async function sendWelcomeEmail({
         <table style="width:100%;font-size:14px">
           <tr>
             <td style="padding:4px 0;color:#6b7280;width:80px">Email:</td>
-            <td style="padding:4px 0;font-weight:600;color:#0a0a0a">${email}</td>
+            <td style="padding:4px 0;font-weight:600;color:#0a0a0a">${safeEmail}</td>
           </tr>
           <tr>
             <td style="padding:4px 0;color:#6b7280">Contrasena:</td>
-            <td style="padding:4px 0;font-weight:600;color:#0a0a0a">${password}</td>
+            <td style="padding:4px 0;font-weight:600;color:#0a0a0a">${safePassword}</td>
           </tr>
         </table>
       </div>
