@@ -85,6 +85,30 @@ export async function markNotificationRead(notificationId: string) {
   revalidatePath("/mi-equipo");
 }
 
+// ─── Player Photo ──────────────────────────────────────────
+
+export async function updatePlayerPhoto(playerId: string, photoUrl: string) {
+  const teamId = await requireCaptainTeam();
+
+  // Only allow internal upload URLs
+  if (!photoUrl.startsWith("/api/uploads/player-photos/")) {
+    throw new Error("Invalid photo URL");
+  }
+
+  const player = await prisma.player.findUnique({
+    where: { id: playerId },
+    select: { teamId: true },
+  });
+  if (!player || player.teamId !== teamId) throw new Error("Unauthorized");
+
+  await prisma.player.update({
+    where: { id: playerId },
+    data: { photo: photoUrl },
+  });
+
+  revalidatePath("/mi-equipo");
+}
+
 // ─── Logo ──────────────────────────────────────────────────
 
 export async function updateTeamLogo(logoUrl: string) {

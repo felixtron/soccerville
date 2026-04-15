@@ -46,6 +46,7 @@ export default async function TournamentDetailPage({
             include: { player: { select: { name: true } } },
             orderBy: { minute: "asc" },
           },
+          participants: { select: { playerId: true, teamId: true } },
         },
         orderBy: [{ matchDay: "asc" }, { createdAt: "asc" }],
       },
@@ -87,6 +88,7 @@ export default async function TournamentDetailPage({
     homeScore: m.homeScore,
     awayScore: m.awayScore,
     status: m.status,
+    isFinal: m.isFinal,
     events: m.events.map((e) => ({
       id: e.id,
       type: e.type,
@@ -95,6 +97,7 @@ export default async function TournamentDetailPage({
       teamId: e.teamId,
       player: { name: e.player.name },
     })),
+    participants: m.participants,
   }));
 
   return (

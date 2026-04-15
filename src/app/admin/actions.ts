@@ -716,3 +716,144 @@ export async function createManualPayment(formData: FormData) {
   revalidatePath("/admin/pagos");
   revalidatePath("/admin/dashboard");
 }
+
+// ─── Credenciales ──────────────────────────────────────────
+
+export async function updatePlayerCredential(
+  playerId: string,
+  data: { name?: string; number?: number | null; position?: string | null; photo?: string }
+) {
+  await requireAdmin();
+
+  if (data.photo && !data.photo.startsWith("/api/uploads/player-photos/")) {
+    throw new Error("Invalid photo URL");
+  }
+
+  await prisma.player.update({
+    where: { id: playerId },
+    data: {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.number !== undefined && { number: data.number }),
+      ...(data.position !== undefined && { position: data.position }),
+      ...(data.photo !== undefined && { photo: data.photo }),
+    },
+  });
+
+  revalidatePath("/admin/credenciales");
+}
+
+// ─── Match Participants (80% rule) ─────────────────────────
+
+export async function registerMatchParticipants(
+  matchId: string,
+  homePlayerIds: string[],
+  awayPlayerIds: string[]
+) {
+  await requireAdmin();
+
+  const match = await prisma.match.findUnique({
+    where: { id: matchId },
+    select: { tournamentId: true, homeTeamId: true, awayTeamId: true },
+  });
+  if (!match) throw new Error("Partido no encontrado");
+
+  await prisma.matchParticipant.deleteMany({ where: { matchId } });
+
+  const records = [
+    ...homePlayerIds.map((playerId) => ({
+      matchId,
+      playerId,
+      teamId: match.homeTeamId,
+    })),
+    ...awayPlayerIds.map((playerId) => ({
+      matchId,
+      playerId,
+      teamId: match.awayTeamId,
+    })),
+  ];
+
+  if (records.length > 0) {
+    await prisma.matchParticipant.createMany({ data: records });
+  }
+
+  revalidatePath(`/admin/torneos/${match.tournamentId}`);
+}
+
+export async function setMatchAsFinal(matchId: string, isFinal: boolean) {
+  await requireAdmin();
+
+  const match = await prisma.match.update({
+    where: { id: matchId },
+    data: { isFinal },
+    select: { tournamentId: true },
+  });
+
+  revalidatePath(`/admin/torneos/${match.tournamentId}`);
+}
+
+// ─── 80% Rule Check ────────────────────────────────────────
+
+export async function checkFinalsEligibility(
+  tournamentId: string,
+  finalMatchId: string
+): Promise<{
+  homeTeam: { name: string; eligible: boolean; percent: number; missing: string[] };
+  awayTeam: { name: string; eligible: boolean; percent: number; missing: string[] };
+}> {
+  await requireAdmin();
+
+  const finalMatch = await prisma.match.findUnique({
+    where: { id: finalMatchId },
+    include: {
+      homeTeam: { select: { id: true, name: true } },
+      awayTeam: { select: { id: true, name: true } },
+      participants: { include: { player: { select: { id: true, name: true } } } },
+    },
+  });
+  if (!finalMatch) throw new Error("Partido no encontrado");
+
+  const previousMatches = await prisma.match.findMany({
+    where: {
+      tournamentId,
+      status: { in: ["PLAYED", "DEFAULTED"] },
+      id: { not: finalMatchId },
+    },
+    select: { id: true },
+  });
+
+  const previousMatchIds = previousMatches.map((m) => m.id);
+
+  async function checkTeam(teamId: string, teamName: string) {
+    const finalLineup = finalMatch!.participants.filter((p) => p.teamId === teamId);
+
+    if (finalLineup.length === 0) {
+      return { name: teamName, eligible: false, percent: 0, missing: [] };
+    }
+
+    const previousParticipants = await prisma.matchParticipant.findMany({
+      where: {
+        matchId: { in: previousMatchIds },
+        teamId,
+        playerId: { in: finalLineup.map((p) => p.playerId) },
+      },
+      distinct: ["playerId"],
+      select: { playerId: true },
+    });
+
+    const previousPlayerIds = new Set(previousParticipants.map((p) => p.playerId));
+    const eligibleCount = finalLineup.filter((p) => previousPlayerIds.has(p.playerId)).length;
+    const percent = Math.round((eligibleCount / finalLineup.length) * 100);
+    const missing = finalLineup
+      .filter((p) => !previousPlayerIds.has(p.playerId))
+      .map((p) => p.player.name);
+
+    return { name: teamName, eligible: percent >= 80, percent, missing };
+  }
+
+  const [homeTeam, awayTeam] = await Promise.all([
+    checkTeam(finalMatch.homeTeamId, finalMatch.homeTeam.name),
+    checkTeam(finalMatch.awayTeamId, finalMatch.awayTeam.name),
+  ]);
+
+  return { homeTeam, awayTeam };
+}

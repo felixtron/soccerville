@@ -1,16 +1,23 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
-import { addPlayer, updatePlayer, removePlayer } from "@/app/(auth)/mi-equipo/actions";
+import { Plus, Pencil, Trash2, Check, X, Camera, Loader2 } from "lucide-react";
+import {
+  addPlayer,
+  updatePlayer,
+  removePlayer,
+  updatePlayerPhoto,
+} from "@/app/(auth)/mi-equipo/actions";
 
 type Player = {
   id: string;
   name: string;
   number: number | null;
   position: string | null;
+  photo: string | null;
 };
 
 const POSITIONS = ["Portero", "Defensa", "Medio", "Delantero"];
@@ -53,6 +60,9 @@ export function RosterEditor({
             className="flex items-center justify-between p-2.5 rounded-lg hover:bg-[#f5f5f5] transition-colors group"
           >
             <div className="flex items-center gap-2.5">
+              {/* Photo avatar */}
+              <PhotoUpload playerId={p.id} currentPhoto={p.photo} playerName={p.name} />
+
               <span className="text-xs font-mono text-muted-foreground w-5 text-right">
                 {p.number ?? "—"}
               </span>
@@ -137,6 +147,85 @@ export function RosterEditor({
     </div>
   );
 }
+
+// ─── Photo Upload Avatar ───────────────────────────────────
+
+function PhotoUpload({
+  playerId,
+  currentPhoto,
+  playerName,
+}: {
+  playerId: string;
+  currentPhoto: string | null;
+  playerName: string;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState<string | null>(currentPhoto);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [, startTransition] = useTransition();
+
+  async function handleFile(file: File) {
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("photo", file);
+      const res = await fetch("/api/upload-player-photo", {
+        method: "POST",
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setPreview(data.url);
+      startTransition(() => updatePlayerPhoto(playerId, data.url));
+    } catch (e: any) {
+      alert(e.message || "Error al subir la foto");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className="relative w-8 h-8 rounded-full overflow-hidden shrink-0 bg-[#e8e8e8] flex items-center justify-center group/photo"
+      title="Subir foto del jugador"
+      onClick={() => inputRef.current?.click()}
+    >
+      {uploading ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+      ) : preview ? (
+        <>
+          <Image src={preview} alt={playerName} fill className="object-cover" />
+          <span className="absolute inset-0 bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center">
+            <Camera className="h-3 w-3 text-white" />
+          </span>
+        </>
+      ) : (
+        <>
+          <span className="text-[10px] font-bold text-muted-foreground uppercase">
+            {playerName.charAt(0)}
+          </span>
+          <span className="absolute inset-0 bg-black/10 opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center">
+            <Camera className="h-3 w-3 text-foreground" />
+          </span>
+        </>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFile(file);
+          e.target.value = "";
+        }}
+      />
+    </button>
+  );
+}
+
+// ─── Player Form ───────────────────────────────────────────
 
 function PlayerForm({
   player,

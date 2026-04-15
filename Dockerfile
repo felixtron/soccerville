@@ -29,7 +29,13 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-RUN mkdir -p /app/uploads/logos && chown -R nextjs:nodejs /app/uploads
+# Copy prisma schema + CLI for db push on startup
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+RUN mkdir -p /app/uploads/logos /app/uploads/player-photos && chown -R nextjs:nodejs /app/uploads
 
 USER nextjs
 
@@ -38,4 +44,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+# Push schema on every startup (safe with db push), then start server
+CMD ["sh", "-c", "node_modules/.bin/prisma db push --skip-generate --accept-data-loss && node server.js"]

@@ -341,6 +341,7 @@ export default async function MiEquipoPage() {
                   name: p.name,
                   number: p.number,
                   position: p.position,
+                  photo: p.photo,
                 }))}
                 playerStats={Object.fromEntries(playerStatsMap)}
               />

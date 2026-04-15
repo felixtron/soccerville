@@ -13,12 +13,18 @@ import {
   Check,
   X,
   Minus,
+  Star,
+  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import {
   recordResult,
   clearResult,
   addMatchEvent,
   removeMatchEvent,
+  registerMatchParticipants,
+  setMatchAsFinal,
+  checkFinalsEligibility,
 } from "@/app/admin/actions";
 import { StandingsTable } from "./tournament-detail";
 
@@ -33,6 +39,7 @@ type MatchEvent = {
   teamId: string;
   player: { name: string };
 };
+type MatchParticipant = { playerId: string; teamId: string };
 type Match = {
   id: string;
   matchDay: number;
@@ -41,7 +48,9 @@ type Match = {
   homeScore: number | null;
   awayScore: number | null;
   status: string;
+  isFinal: boolean;
   events: MatchEvent[];
+  participants: MatchParticipant[];
 };
 type Team = {
   id: string;
@@ -86,6 +95,8 @@ export function TournamentDashboard({
   hasMatches: boolean;
   teamCount: number;
 }) {
+  // tournamentId is used in MatchDetailPanel via closure
+  const tid = tournamentId;
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
   const played = matches.filter(
@@ -168,6 +179,8 @@ export function TournamentDashboard({
                               className={`flex items-center justify-between p-2.5 rounded-lg text-left transition-all text-xs ${
                                 isSelected
                                   ? "ring-2 ring-blue-500 bg-blue-50"
+                                  : m.isFinal
+                                  ? "bg-amber-50 shadow-sm hover:shadow-md ring-1 ring-amber-200"
                                   : isPlayed
                                   ? "bg-white shadow-sm hover:shadow-md"
                                   : "bg-gray-50 hover:bg-gray-100 border border-dashed border-gray-200"
@@ -182,9 +195,12 @@ export function TournamentDashboard({
                                 )}
                                 <span className="font-medium truncate max-w-[70px]">{m.awayTeam.name}</span>
                               </div>
-                              {isPlayed && m.events.length > 0 && (
-                                <span className="text-[9px] text-muted-foreground ml-1 shrink-0">{m.events.length}ev</span>
-                              )}
+                              <div className="flex items-center gap-1 ml-1 shrink-0">
+                                {m.isFinal && <Star className="h-3 w-3 text-amber-500 fill-amber-400" />}
+                                {isPlayed && m.events.length > 0 && (
+                                  <span className="text-[9px] text-muted-foreground">{m.events.length}ev</span>
+                                )}
+                              </div>
                             </button>
                           );
                         })}
@@ -212,6 +228,7 @@ export function TournamentDashboard({
                   <div className="sticky top-20">
                     <MatchDetailPanel
                       match={selectedMatch}
+                      tournamentId={tid}
                       onClose={() => setSelectedMatchId(null)}
                     />
                   </div>
@@ -224,6 +241,7 @@ export function TournamentDashboard({
               <div className="lg:hidden mt-4">
                 <MatchDetailPanel
                   match={selectedMatch}
+                  tournamentId={tid}
                   onClose={() => setSelectedMatchId(null)}
                 />
               </div>
@@ -281,12 +299,15 @@ export function TournamentDashboard({
 
 function MatchDetailPanel({
   match,
+  tournamentId,
   onClose,
 }: {
   match: Match;
+  tournamentId: string;
   onClose: () => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [showLineup, setShowLineup] = useState(false);
   const [pending, startTransition] = useTransition();
   const panelRef = useRef<HTMLDivElement>(null);
   const isPlayed = match.status === "PLAYED" || match.status === "DEFAULTED" || match.status === "ABANDONED";
@@ -308,10 +329,40 @@ function MatchDetailPanel({
       <CardContent className="p-4 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <Badge variant="outline" className="text-[10px]">J{match.matchDay}</Badge>
-          <Button variant="ghost" size="icon-sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[10px]">J{match.matchDay}</Badge>
+            {match.isFinal && (
+              <Badge className="bg-amber-100 text-amber-700 text-[9px] gap-1">
+                <Star className="h-2.5 w-2.5 fill-amber-500" /> Final
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            {/* Mark as Final */}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title={match.isFinal ? "Quitar Final" : "Marcar Final"}
+              className={match.isFinal ? "text-amber-500" : "text-muted-foreground"}
+              disabled={pending}
+              onClick={() => startTransition(() => setMatchAsFinal(match.id, !match.isFinal))}
+            >
+              <Star className={`h-3.5 w-3.5 ${match.isFinal ? "fill-amber-400" : ""}`} />
+            </Button>
+            {/* Lineup */}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="Alineacion"
+              className={showLineup ? "bg-muted text-blue-600" : "text-muted-foreground"}
+              onClick={() => setShowLineup(!showLineup)}
+            >
+              <Users className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon-sm" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Teams + Score */}
@@ -360,6 +411,15 @@ function MatchDetailPanel({
           >
             Borrar resultado
           </button>
+        )}
+
+        {/* Lineup panel */}
+        {showLineup && (
+          <InlineLineupPanel
+            match={match}
+            tournamentId={tournamentId}
+            onClose={() => setShowLineup(false)}
+          />
         )}
 
         {/* Events */}
@@ -436,5 +496,160 @@ function MatchDetailPanel({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// ─── Inline Lineup Panel ────────────────────────────────────
+
+function InlineLineupPanel({
+  match,
+  tournamentId,
+  onClose,
+}: {
+  match: Match;
+  tournamentId: string;
+  onClose: () => void;
+}) {
+  const existingHome = new Set(
+    match.participants.filter((p) => p.teamId === match.homeTeam.id).map((p) => p.playerId)
+  );
+  const existingAway = new Set(
+    match.participants.filter((p) => p.teamId === match.awayTeam.id).map((p) => p.playerId)
+  );
+
+  const [homeSelected, setHomeSelected] = useState<Set<string>>(existingHome);
+  const [awaySelected, setAwaySelected] = useState<Set<string>>(existingAway);
+  const [pending, startTransition] = useTransition();
+  const [eligibility, setEligibility] = useState<{
+    homeTeam: { name: string; eligible: boolean; percent: number; missing: string[] };
+    awayTeam: { name: string; eligible: boolean; percent: number; missing: string[] };
+  } | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  function toggle(set: Set<string>, id: string) {
+    const next = new Set(set);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  }
+
+  async function handleCheck() {
+    setChecking(true);
+    try {
+      const result = await checkFinalsEligibility(tournamentId, match.id);
+      setEligibility(result);
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  return (
+    <div className="border-t pt-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          Alineacion
+        </p>
+        <div className="flex items-center gap-1">
+          {match.isFinal && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 text-[10px] px-2"
+              disabled={checking}
+              onClick={handleCheck}
+            >
+              <ShieldCheck className="h-3 w-3 mr-1" />
+              {checking ? "..." : "Regla 80%"}
+            </Button>
+          )}
+          <Button
+            size="sm"
+            className="h-6 text-[10px] px-2 bg-blue-600 hover:bg-blue-500"
+            disabled={pending}
+            onClick={() => {
+              startTransition(async () => {
+                await registerMatchParticipants(
+                  match.id,
+                  Array.from(homeSelected),
+                  Array.from(awaySelected)
+                );
+                onClose();
+              });
+            }}
+          >
+            <Check className="h-3 w-3 mr-1" />
+            Guardar
+          </Button>
+        </div>
+      </div>
+
+      {/* Eligibility result */}
+      {eligibility && (
+        <div className="space-y-2">
+          {[eligibility.homeTeam, eligibility.awayTeam].map((team) => (
+            <div
+              key={team.name}
+              className={`rounded-lg p-2 text-[10px] ${
+                team.eligible ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+              }`}
+            >
+              <div className="flex items-center gap-1 font-bold">
+                {team.eligible ? (
+                  <ShieldCheck className="h-3 w-3" />
+                ) : (
+                  <ShieldAlert className="h-3 w-3" />
+                )}
+                {team.name}: {team.percent === 0 ? "Sin alineacion" : `${team.percent}% elegibles`}
+              </div>
+              {!team.eligible && team.missing.length > 0 && (
+                <p className="mt-0.5">No elegibles: {team.missing.join(", ")}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Player checkboxes */}
+      <div className="grid grid-cols-2 gap-3">
+        {[
+          { team: match.homeTeam, selected: homeSelected, setSelected: setHomeSelected },
+          { team: match.awayTeam, selected: awaySelected, setSelected: setAwaySelected },
+        ].map(({ team, selected, setSelected }) => (
+          <div key={team.id}>
+            <p className="text-[10px] font-medium mb-1.5 truncate">{team.name}</p>
+            {team.players.length === 0 ? (
+              <p className="text-[10px] text-muted-foreground">Sin jugadores</p>
+            ) : (
+              <div className="space-y-0.5 max-h-36 overflow-y-auto">
+                {team.players.map((p) => (
+                  <label
+                    key={p.id}
+                    className="flex items-center gap-1.5 text-[10px] cursor-pointer hover:bg-blue-50/50 px-1 py-0.5 rounded"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(p.id)}
+                      onChange={() => setSelected(toggle(selected, p.id))}
+                      className="w-3 h-3"
+                    />
+                    {p.number && <span className="text-muted-foreground">#{p.number}</span>}
+                    <span className="truncate">{p.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            <p className="text-[9px] text-muted-foreground mt-1">{selected.size} sel.</p>
+          </div>
+        ))}
+      </div>
+
+      {match.isFinal && (
+        <p className="text-[9px] text-amber-700 bg-amber-50 rounded p-1.5">
+          Partido de Final — guarda la alineacion y usa "Regla 80%" para verificar elegibilidad.
+        </p>
+      )}
+    </div>
   );
 }
